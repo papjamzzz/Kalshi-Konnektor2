@@ -92,6 +92,7 @@ POLYMARKET_BASE_URL = "https://gamma-api.polymarket.com"
 ODDS_CACHE_FILE = Path(os.environ.get("ODDS_CACHE_FILE", "odds_cache.json"))
 ODDS_CACHE_MAX_AGE_MINUTES = int(os.environ.get("ODDS_CACHE_MAX_AGE_MINUTES", "720"))
 ODDS_CACHE_WRITE_ON_SUCCESS = os.environ.get("ODDS_CACHE_WRITE_ON_SUCCESS", "true").lower() == "true"
+ENABLE_ESPN_ODDS_FALLBACK = os.environ.get("ENABLE_ESPN_ODDS_FALLBACK", "true").lower() == "true"
 NBA_SPORT_KEY = "basketball_nba"
 NHL_SPORT_KEY = "icehockey_nhl"
 MLB_SPORT_KEY = "baseball_mlb"
@@ -121,6 +122,11 @@ SERIES_EXCLUDE_TERMS = (
 )
 INJURY_WATCHER_INTERVAL_SECONDS = int(os.environ.get("INJURY_WATCHER_INTERVAL_SECONDS", "900"))
 WATCHER_LAST_POLLED: dict[str, float] = {}
+ESPN_SCOREBOARD_URLS = {
+    NBA_SPORT_KEY: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
+    NHL_SPORT_KEY: "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard",
+    MLB_SPORT_KEY: "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard",
+}
 
 
 # -- Data model ----------------------------------------------------------------
@@ -944,31 +950,122 @@ def normalize_moneyline_events(raw_events: list[dict[str, Any]], sport_key: str)
     return results
 
 
+def parse_espn_moneyline_price(node: Any) -> Optional[float]:
+    if not isinstance(node, dict):
+        return None
+    close = node.get("close")
+    if isinstance(close, dict):
+        price = implied_probability_from_american(close.get("odds"))
+        if price is not None:
+            return price
+    open_price = node.get("open")
+    if isinstance(open_price, dict):
+        return implied_probability_from_american(open_price.get("odds"))
+    return None
+
+
+def fetch_espn_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
+    url = ESPN_SCOREBOARD_URLS.get(sport_key)
+    if not url:
+        return []
+
+    payload = get_json(url)
+    results: list[OddsEvent] = []
+    for event in payload.get("events", []):
+        event_id = str(event.get("id", "")).strip()
+        competitions = event.get("competitions", [])
+        if not event_id or not competitions:
+            continue
+
+        competition = competitions[0]
+        commence_ts = to_unix_timestamp(competition.get("date") or event.get("date"))
+        competitors = competition.get("competitors", [])
+        if commence_ts is None or len(competitors) < 2:
+            continue
+
+        home_team = ""
+        away_team = ""
+        for competitor in competitors:
+            team = competitor.get("team", {})
+            display_name = str(team.get("displayName", "")).strip()
+            if competitor.get("homeAway") == "home":
+                home_team = display_name
+            elif competitor.get("homeAway") == "away":
+                away_team = display_name
+
+        if not home_team or not away_team:
+            continue
+
+        home_probs: list[float] = []
+        away_probs: list[float] = []
+        for odds_entry in competition.get("odds", []):
+            moneyline = odds_entry.get("moneyline", {})
+            home_probability = parse_espn_moneyline_price(moneyline.get("home"))
+            away_probability = parse_espn_moneyline_price(moneyline.get("away"))
+            if home_probability is None or away_probability is None:
+                continue
+
+            total = home_probability + away_probability
+            if total <= 0:
+                continue
+
+            home_probs.append(clamp_probability(home_probability / total))
+            away_probs.append(clamp_probability(away_probability / total))
+
+        if not home_probs or not away_probs:
+            continue
+
+        results.append(
+            OddsEvent(
+                event_id=event_id,
+                commence_ts=commence_ts,
+                home_team=home_team,
+                away_team=away_team,
+                home_probability=sum(home_probs) / len(home_probs),
+                away_probability=sum(away_probs) / len(away_probs),
+                sport_key=sport_key,
+            )
+        )
+
+    return results
+
+
 def fetch_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
     cached = load_cached_odds_events(sport_key)
     if not ODDS_API_KEY:
         log.warning(f"  Auto-scan for {sport_key} is enabled but ODDS_API_KEY is missing.")
-        return cached.events
+    else:
+        try:
+            raw_events = get_json(
+                f"{ODDS_API_BASE_URL}/{sport_key}/odds",
+                params={
+                    "apiKey": ODDS_API_KEY,
+                    "regions": "us",
+                    "markets": "h2h",
+                    "oddsFormat": "american",
+                },
+            )
+            events = normalize_moneyline_events(raw_events, sport_key)
+            if events:
+                if ODDS_CACHE_WRITE_ON_SUCCESS:
+                    save_cached_odds_events(sport_key, events)
+                log.info(f"  Loaded {len(events)} live odds events for {sport_key} from The Odds API.")
+                return events
+            log.warning(f"  Live odds fetch for {sport_key} returned no usable The Odds API events.")
+        except Exception as exc:
+            log.warning(f"  Could not fetch {sport_key} odds events live from The Odds API: {exc}")
 
-    try:
-        raw_events = get_json(
-            f"{ODDS_API_BASE_URL}/{sport_key}/odds",
-            params={
-                "apiKey": ODDS_API_KEY,
-                "regions": "us",
-                "markets": "h2h",
-                "oddsFormat": "american",
-            },
-        )
-        events = normalize_moneyline_events(raw_events, sport_key)
-        if events:
-            if ODDS_CACHE_WRITE_ON_SUCCESS:
-                save_cached_odds_events(sport_key, events)
-            log.info(f"  Loaded {len(events)} live odds events for {sport_key}.")
-            return events
-        log.warning(f"  Live odds fetch for {sport_key} returned no usable events.")
-    except Exception as exc:
-        log.warning(f"  Could not fetch {sport_key} odds events live: {exc}")
+    if ENABLE_ESPN_ODDS_FALLBACK:
+        try:
+            espn_events = fetch_espn_moneyline_events_for_sport(sport_key)
+            if espn_events:
+                if ODDS_CACHE_WRITE_ON_SUCCESS:
+                    save_cached_odds_events(sport_key, espn_events)
+                log.info(f"  Loaded {len(espn_events)} live odds events for {sport_key} from ESPN fallback.")
+                return espn_events
+            log.warning(f"  ESPN fallback returned no usable moneyline events for {sport_key}.")
+        except Exception as exc:
+            log.warning(f"  Could not fetch {sport_key} odds events live from ESPN fallback: {exc}")
 
     if cached.events:
         stale_label = "stale cached" if cached.stale else "cached"

@@ -61,7 +61,8 @@ Fill in:
 Odds failover:
 
 - successful sportsbook fetches are cached to `odds_cache.json`
-- if The Odds API errors out, the bot falls back to the latest cached league snapshot
+- if The Odds API errors out, the bot tries ESPN's live scoreboard odds feed next
+- if both live providers fail, the bot falls back to the latest cached league snapshot
 - `ODDS_CACHE_MAX_AGE_MINUTES` controls when cached data is marked stale in logs
 
 ### 2. Edit `WATCHLIST` in `kalshi_bot.py`
@@ -209,6 +210,7 @@ python kalshi_bot.py
 | `ODDS_CACHE_FILE` | odds_cache.json | Local sportsbook snapshot cache used for provider failover |
 | `ODDS_CACHE_MAX_AGE_MINUTES` | 720 | Mark cached sportsbook data stale after this many minutes |
 | `ODDS_CACHE_WRITE_ON_SUCCESS` | true | Save fresh sportsbook snapshots after successful live pulls |
+| `ENABLE_ESPN_ODDS_FALLBACK` | true | Use ESPN scoreboard odds as a second live provider before falling back to cache |
 | `MAX_AUTO_CANDIDATES` | 5 | How many NBA candidates to keep per scan |
 | `AUTO_CONTRACTS` | 2 | Default size per automatically selected trade |
 | `AUTO_MAX_PRICE_CENTS` | 70 | Avoid paying too much for auto-selected contracts |
@@ -232,6 +234,7 @@ python kalshi_bot.py
 - `bot_state.json` stores open-position state between restarts.
 - `injury_watcher_state.json` stores the last NBA and NHL watcher snapshots.
 - `odds_cache.json` stores the last successful sportsbook snapshot for each auto-scanned league.
+- The live sportsbook chain is now: The Odds API -> ESPN scoreboard odds -> cached snapshot.
 - Daily trade count and realized PnL are also stored in `bot_state.json`, so safety limits survive restarts.
 - Polymarket is queried through the public Gamma API.
 - Vegas odds are pulled through The Odds API and de-vigged at the bookmaker level before averaging.
