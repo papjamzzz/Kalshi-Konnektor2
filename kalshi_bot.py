@@ -72,7 +72,8 @@ DISABLE_NEW_ENTRIES = os.environ.get("DISABLE_NEW_ENTRIES", "false").lower() == 
 STATE_FILE = Path(os.environ.get("STATE_FILE", "bot_state.json"))
 AUTO_NBA_PREGAME = os.environ.get("AUTO_NBA_PREGAME", "false").lower() == "true"
 AUTO_NHL_PREGAME = os.environ.get("AUTO_NHL_PREGAME", "false").lower() == "true"
-NBA_LOOKAHEAD_HOURS = int(os.environ.get("NBA_LOOKAHEAD_HOURS", "24"))
+AUTO_MLB_PREGAME = os.environ.get("AUTO_MLB_PREGAME", "false").lower() == "true"
+AUTO_LOOKAHEAD_HOURS = int(os.environ.get("AUTO_LOOKAHEAD_HOURS", os.environ.get("NBA_LOOKAHEAD_HOURS", "24")))
 MAX_AUTO_CANDIDATES = int(os.environ.get("MAX_AUTO_CANDIDATES", "5"))
 AUTO_CONTRACTS = int(os.environ.get("AUTO_CONTRACTS", "2"))
 AUTO_TAKE_PROFIT_CENTS = int(os.environ.get("AUTO_TAKE_PROFIT_CENTS", "8"))
@@ -91,15 +92,30 @@ POLYMARKET_BASE_URL = "https://gamma-api.polymarket.com"
 NBA_SPORT_KEY = "basketball_nba"
 NHL_SPORT_KEY = "icehockey_nhl"
 MLB_SPORT_KEY = "baseball_mlb"
-NBA_KALSHI_SERIES = ("KXNBAGAMES", "KXMVENBASINGLEGAME")
+NBA_KALSHI_SERIES = ("KXNBAGAME", "KXNBAGAMES", "KXMVENBASINGLEGAME")
 NHL_KALSHI_SERIES = ("KXNHLGAME",)
-MLB_KALSHI_SERIES: tuple[str, ...] = ()
+MLB_KALSHI_SERIES: tuple[str, ...] = ("KXMLBGAME",)
 ENABLE_NBA_INJURY_WATCHER = os.environ.get("ENABLE_NBA_INJURY_WATCHER", "true").lower() == "true"
 ENABLE_NHL_INJURY_WATCHER = os.environ.get("ENABLE_NHL_INJURY_WATCHER", "true").lower() == "true"
 INJURY_WATCHER_STATE_FILE = Path(os.environ.get("INJURY_WATCHER_STATE_FILE", "injury_watcher_state.json"))
 NBA_SERIES_DISCOVERY_TERMS = ("nba", "pro basketball")
 NHL_SERIES_DISCOVERY_TERMS = ("nhl", "pro hockey")
 MLB_SERIES_DISCOVERY_TERMS = ("mlb", "baseball")
+SERIES_EXCLUDE_TERMS = (
+    "1st half",
+    "2nd half",
+    "quarter",
+    "first 5",
+    "f5",
+    "spread",
+    "total",
+    "team total",
+    "run in first inning",
+    "spring training",
+    "all star",
+    "celebrity",
+    "viewer",
+)
 INJURY_WATCHER_INTERVAL_SECONDS = int(os.environ.get("INJURY_WATCHER_INTERVAL_SECONDS", "900"))
 WATCHER_LAST_POLLED: dict[str, float] = {}
 
@@ -891,7 +907,7 @@ def fetch_open_kalshi_markets(client) -> list[Any]:
     cursor: Optional[str] = None
     now = int(time.time())
     min_close_ts = now + (AUTO_MIN_TIME_TO_CLOSE_MINUTES * 60)
-    max_close_ts = now + (NBA_LOOKAHEAD_HOURS * 3600)
+    max_close_ts = now + (AUTO_LOOKAHEAD_HOURS * 3600)
 
     for _ in range(20):
         page, cursor = get_markets_page(
@@ -944,12 +960,15 @@ def discover_series_tickers(client, league: str) -> tuple[str, ...]:
     if league == "NBA":
         preferred = NBA_KALSHI_SERIES
         terms = NBA_SERIES_DISCOVERY_TERMS
+        allowed_prefixes = ("KXNBA",)
     elif league == "NHL":
         preferred = NHL_KALSHI_SERIES
         terms = NHL_SERIES_DISCOVERY_TERMS
+        allowed_prefixes = ("KXNHL",)
     else:
         preferred = MLB_KALSHI_SERIES
         terms = MLB_SERIES_DISCOVERY_TERMS
+        allowed_prefixes = ("KXMLB",)
 
     try:
         response = client["series_api"].get_series(status="open")
@@ -965,9 +984,13 @@ def discover_series_tickers(client, league: str) -> tuple[str, ...]:
         searchable = normalize_text(" ".join([title, category, ticker]))
         if "sports" not in searchable:
             continue
+        if ticker not in preferred and not ticker.startswith(allowed_prefixes):
+            continue
         if not any(term in searchable for term in terms):
             continue
-        if "game" in searchable or "winner" in searchable or "moneyline" in searchable or "single game" in searchable:
+        if any(term in searchable for term in SERIES_EXCLUDE_TERMS):
+            continue
+        if "game" in searchable or "moneyline" in searchable or "single game" in searchable:
             discovered.append(ticker)
 
     ordered = list(dict.fromkeys([*preferred, *sorted(discovered)]))
@@ -981,7 +1004,7 @@ def market_closes_soon(market: Any) -> bool:
 
     now = int(time.time())
     min_close_delta = AUTO_MIN_TIME_TO_CLOSE_MINUTES * 60
-    max_close_delta = NBA_LOOKAHEAD_HOURS * 3600
+    max_close_delta = AUTO_LOOKAHEAD_HOURS * 3600
     delta = close_ts - now
     return min_close_delta <= delta <= max_close_delta
 
@@ -1240,6 +1263,11 @@ def build_auto_nhl_watchlist(client) -> list[WatchEntry]:
     return build_auto_league_watchlist(client, league="NHL", odds_events=odds_events)
 
 
+def build_auto_mlb_watchlist(client) -> list[WatchEntry]:
+    odds_events = fetch_mlb_odds_events()
+    return build_auto_league_watchlist(client, league="MLB", odds_events=odds_events)
+
+
 # -- Edge model ----------------------------------------------------------------
 def aggregate_fair_probability(entry: WatchEntry) -> tuple[Optional[float], list[SourceSignal]]:
     signals: list[SourceSignal] = []
@@ -1401,10 +1429,11 @@ def run() -> None:
         MAX_ACTIVE_POSITIONS,
     )
     log.info(
-        "Auto mode: nhl_pregame=%s  nba_pregame=%s  lookahead=%sh  auto_candidates=%s  auto_contracts=%s",
+        "Auto mode: nhl_pregame=%s  nba_pregame=%s  mlb_pregame=%s  lookahead=%sh  auto_candidates=%s  auto_contracts=%s",
         AUTO_NHL_PREGAME,
         AUTO_NBA_PREGAME,
-        NBA_LOOKAHEAD_HOURS,
+        AUTO_MLB_PREGAME,
+        AUTO_LOOKAHEAD_HOURS,
         MAX_AUTO_CANDIDATES,
         AUTO_CONTRACTS,
     )
@@ -1428,6 +1457,8 @@ def run() -> None:
             entries = build_auto_nhl_watchlist(client)
         elif AUTO_NBA_PREGAME:
             entries = build_auto_nba_watchlist(client)
+        elif AUTO_MLB_PREGAME:
+            entries = build_auto_mlb_watchlist(client)
         else:
             entries = WATCHLIST
         log.info(f"Active candidate set: {len(entries)} entries")

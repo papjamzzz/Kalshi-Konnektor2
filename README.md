@@ -196,7 +196,8 @@ python kalshi_bot.py
 | `MAX_ACTIVE_POSITIONS` | 3 | Cap simultaneous exposure |
 | `AUTO_NHL_PREGAME` | false | Enable automatic pregame NHL scanning |
 | `AUTO_NBA_PREGAME` | false | Enable automatic pregame NBA scanning |
-| `NBA_LOOKAHEAD_HOURS` | 24 | Only consider markets closing within this many hours |
+| `AUTO_MLB_PREGAME` | false | Enable automatic pregame MLB scanning |
+| `AUTO_LOOKAHEAD_HOURS` | 24 | Only consider auto-selected league markets closing within this many hours |
 | `MAX_AUTO_CANDIDATES` | 5 | How many NBA candidates to keep per scan |
 | `AUTO_CONTRACTS` | 2 | Default size per automatically selected trade |
 | `AUTO_MAX_PRICE_CENTS` | 70 | Avoid paying too much for auto-selected contracts |
