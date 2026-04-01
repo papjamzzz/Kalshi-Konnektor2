@@ -122,8 +122,9 @@ In this mode the bot will:
 1. Pull NBA moneyline consensus from sportsbooks.
 2. Scan open Kalshi markets that are closing soon.
 3. Match markets to NBA games by team names.
-4. Rank candidates by implied edge.
-5. Trade only the best few that still pass spread, volume, and risk gates.
+4. Ignore side markets like first-half, quarter, or first-five contracts.
+5. Rank candidates by implied edge.
+6. Trade only the best few that still pass spread, volume, and risk gates.
 
 Important: this is the right way to automate selection. Letting the bot pick from all of Kalshi is not.
 `MIN_AUTO_MATCH_CONFIDENCE` controls how strict the NBA market matcher is. A modest default is `0.6`.

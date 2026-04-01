@@ -201,6 +201,8 @@ class LeagueScanStats:
     kalshi_events: int = 0
     matched_events: int = 0
     total_markets_seen: int = 0
+    filtered_period_markets: int = 0
+    off_window_markets: int = 0
     quoted_markets: int = 0
     candidate_markets: int = 0
 
@@ -241,35 +243,93 @@ WATCHLIST: list[WatchEntry] = [
 
 TEAM_ALIASES: dict[str, set[str]] = {
     "atlanta hawks": {"atlanta hawks", "hawks", "atl"},
+    "arizona diamondbacks": {"arizona diamondbacks", "diamondbacks", "d backs", "dbacks", "ari", "arizona"},
+    "athletics": {"athletics", "a s", "as", "oakland athletics", "oakland a s", "oakland as", "a's", "oak", "athletics"},
+    "atlanta braves": {"atlanta braves", "braves", "atl"},
+    "baltimore orioles": {"baltimore orioles", "orioles", "bal", "baltimore"},
     "boston celtics": {"boston celtics", "celtics", "bos"},
+    "boston red sox": {"boston red sox", "red sox", "bos", "boston"},
     "brooklyn nets": {"brooklyn nets", "nets", "bkn", "bk"},
+    "buffalo sabres": {"buffalo sabres", "sabres", "buf", "buffalo"},
+    "calgary flames": {"calgary flames", "flames", "cgy", "calgary"},
+    "carolina hurricanes": {"carolina hurricanes", "hurricanes", "canes", "car", "carolina"},
     "charlotte hornets": {"charlotte hornets", "hornets", "cha"},
     "chicago bulls": {"chicago bulls", "bulls", "chi"},
+    "chicago blackhawks": {"chicago blackhawks", "blackhawks", "hawks", "chi", "chicago"},
+    "chicago cubs": {"chicago cubs", "cubs", "chicago c", "chicago cubs", "chc"},
+    "chicago white sox": {"chicago white sox", "white sox", "sox", "chicago ws", "cws"},
     "cleveland cavaliers": {"cleveland cavaliers", "cavaliers", "cavs", "cle"},
+    "cincinnati reds": {"cincinnati reds", "reds", "cin", "cincinnati"},
+    "cleveland guardians": {"cleveland guardians", "guardians", "cle", "cleveland"},
+    "colorado avalanche": {"colorado avalanche", "avalanche", "avs", "col", "colorado"},
+    "colorado rockies": {"colorado rockies", "rockies", "col", "colorado"},
+    "columbus blue jackets": {"columbus blue jackets", "blue jackets", "jackets", "cbj", "columbus"},
     "dallas mavericks": {"dallas mavericks", "mavericks", "mavs", "dal"},
+    "dallas stars": {"dallas stars", "stars", "dal", "dallas"},
+    "detroit red wings": {"detroit red wings", "red wings", "wings", "det", "detroit"},
+    "detroit tigers": {"detroit tigers", "tigers", "det", "detroit"},
     "denver nuggets": {"denver nuggets", "nuggets", "den"},
     "detroit pistons": {"detroit pistons", "pistons", "det"},
+    "edmonton oilers": {"edmonton oilers", "oilers", "edm", "edmonton"},
+    "florida panthers": {"florida panthers", "panthers", "fla", "florida"},
     "golden state warriors": {"golden state warriors", "warriors", "gsw", "golden state"},
+    "houston astros": {"houston astros", "astros", "hou", "houston"},
     "houston rockets": {"houston rockets", "rockets", "hou"},
     "indiana pacers": {"indiana pacers", "pacers", "ind"},
+    "kansas city royals": {"kansas city royals", "royals", "kc", "kansas city"},
+    "los angeles angels": {"los angeles angels", "angels", "la angels", "los angeles a", "laa"},
     "los angeles clippers": {"los angeles clippers", "clippers", "lac", "la clippers"},
     "los angeles lakers": {"los angeles lakers", "lakers", "lal", "la lakers"},
+    "los angeles dodgers": {"los angeles dodgers", "dodgers", "la dodgers", "lad"},
     "memphis grizzlies": {"memphis grizzlies", "grizzlies", "mem"},
     "miami heat": {"miami heat", "heat", "mia"},
+    "miami marlins": {"miami marlins", "marlins", "mia", "miami"},
     "milwaukee bucks": {"milwaukee bucks", "bucks", "mil"},
+    "milwaukee brewers": {"milwaukee brewers", "brewers", "mil", "milwaukee"},
+    "minnesota twins": {"minnesota twins", "twins", "min", "minnesota"},
+    "minnesota wild": {"minnesota wild", "wild", "min", "minnesota"},
     "minnesota timberwolves": {"minnesota timberwolves", "timberwolves", "wolves", "min"},
+    "montreal canadiens": {"montreal canadiens", "canadiens", "habs", "mtl", "montreal"},
+    "nashville predators": {"nashville predators", "predators", "preds", "nsh", "nashville"},
+    "new jersey devils": {"new jersey devils", "devils", "njd", "new jersey"},
+    "new york islanders": {"new york islanders", "islanders", "nyi", "ny islanders"},
+    "new york mets": {"new york mets", "mets", "new york m", "nym"},
+    "new york rangers": {"new york rangers", "rangers", "nyr", "new york rangers"},
     "new orleans pelicans": {"new orleans pelicans", "pelicans", "nop", "no pelicans"},
     "new york knicks": {"new york knicks", "knicks", "nyk"},
+    "new york yankees": {"new york yankees", "yankees", "new york y", "nyy"},
+    "ottawa senators": {"ottawa senators", "senators", "sens", "ott", "ottawa"},
     "oklahoma city thunder": {"oklahoma city thunder", "thunder", "okc"},
     "orlando magic": {"orlando magic", "magic", "orl"},
+    "philadelphia flyers": {"philadelphia flyers", "flyers", "phi", "philadelphia"},
+    "philadelphia phillies": {"philadelphia phillies", "phillies", "phi", "philadelphia"},
     "philadelphia 76ers": {"philadelphia 76ers", "76ers", "sixers", "phi"},
     "phoenix suns": {"phoenix suns", "suns", "phx", "pho"},
+    "pittsburgh penguins": {"pittsburgh penguins", "penguins", "pens", "pit", "pittsburgh"},
+    "pittsburgh pirates": {"pittsburgh pirates", "pirates", "pit", "pittsburgh"},
     "portland trail blazers": {"portland trail blazers", "trail blazers", "blazers", "por"},
+    "san diego padres": {"san diego padres", "padres", "sd", "san diego"},
     "sacramento kings": {"sacramento kings", "kings", "sac"},
     "san antonio spurs": {"san antonio spurs", "spurs", "sas"},
+    "san francisco giants": {"san francisco giants", "giants", "sf", "san francisco"},
+    "seattle kraken": {"seattle kraken", "kraken", "sea", "seattle"},
+    "seattle mariners": {"seattle mariners", "mariners", "sea", "seattle"},
+    "st louis blues": {"st louis blues", "blues", "st louis", "stl"},
+    "st louis cardinals": {"st louis cardinals", "cardinals", "st louis", "stl"},
+    "tampa bay lightning": {"tampa bay lightning", "lightning", "tbl", "tampa bay"},
+    "tampa bay rays": {"tampa bay rays", "rays", "tb", "tampa bay"},
+    "texas rangers": {"texas rangers", "rangers", "tex", "texas"},
+    "toronto blue jays": {"toronto blue jays", "blue jays", "jays", "tor", "toronto"},
+    "toronto maple leafs": {"toronto maple leafs", "maple leafs", "leafs", "tor", "toronto"},
     "toronto raptors": {"toronto raptors", "raptors", "tor"},
+    "utah hockey club": {"utah hockey club", "utah", "utah hockey", "uta"},
     "utah jazz": {"utah jazz", "jazz", "uta"},
+    "vancouver canucks": {"vancouver canucks", "canucks", "van", "vancouver"},
+    "vegas golden knights": {"vegas golden knights", "golden knights", "knights", "vgk", "vegas"},
+    "washington capitals": {"washington capitals", "capitals", "caps", "wsh", "washington"},
+    "washington nationals": {"washington nationals", "nationals", "nats", "wsh", "washington"},
     "washington wizards": {"washington wizards", "wizards", "was"},
+    "winnipeg jets": {"winnipeg jets", "jets", "wpg", "winnipeg"},
 }
 
 
@@ -546,6 +606,48 @@ def identify_team_from_text(text: str, teams: list[str]) -> Optional[str]:
 
 def team_match_count(text: str, teams: list[str]) -> int:
     return sum(1 for team in teams if matches_team(text, team))
+
+
+def is_full_game_market(market: Any, league: str, event_context: str = "") -> bool:
+    searchable = normalize_text(
+        " ".join(
+            [
+                event_context,
+                str(getattr(market, "title", "") or ""),
+                str(getattr(market, "subtitle", "") or ""),
+                str(getattr(market, "yes_sub_title", "") or ""),
+                str(getattr(market, "no_sub_title", "") or ""),
+                str(getattr(market, "ticker", "") or ""),
+            ]
+        )
+    )
+
+    excluded_terms = (
+        "first half",
+        "second half",
+        "1st half",
+        "2nd half",
+        "quarter",
+        "1q",
+        "2q",
+        "3q",
+        "4q",
+        "period",
+        "1p",
+        "2p",
+        "3p",
+        "innings 1 5",
+        "first 5",
+        "f5",
+    )
+    if any(term in searchable for term in excluded_terms):
+        return False
+
+    if league == "NBA":
+        return "1hwinner" not in searchable and "quarter winner" not in searchable
+    if league == "MLB":
+        return "xmlbf5" not in searchable
+    return True
 
 
 # -- External sources ----------------------------------------------------------
@@ -1063,7 +1165,18 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
         markets = list(getattr(kalshi_event, "markets", []) or [])
         for market in markets:
             stats.total_markets_seen += 1
+            event_context = " ".join(
+                [
+                    str(getattr(kalshi_event, "title", "") or ""),
+                    str(getattr(kalshi_event, "sub_title", "") or ""),
+                    str(getattr(kalshi_event, "event_ticker", "") or ""),
+                ]
+            )
+            if not is_full_game_market(market, league, event_context=event_context):
+                stats.filtered_period_markets += 1
+                continue
             if not market_closes_soon(market):
+                stats.off_window_markets += 1
                 continue
 
             ticker = str(getattr(market, "ticker", "") or "")
@@ -1092,15 +1205,25 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
 
     candidates.sort(key=lambda item: item[0], reverse=True)
     log.info(
-        "  %s liquidity snapshot: matched_events=%s total_markets=%s quoted_markets=%s candidates=%s",
+        "  %s liquidity snapshot: matched_events=%s total_markets=%s filtered_period_markets=%s off_window_markets=%s quoted_markets=%s candidates=%s",
         league,
         stats.matched_events,
         stats.total_markets_seen,
+        stats.filtered_period_markets,
+        stats.off_window_markets,
         stats.quoted_markets,
         stats.candidate_markets,
     )
     if not candidates:
-        if stats.matched_events > 0 and stats.quoted_markets == 0:
+        if stats.matched_events > 0 and stats.filtered_period_markets > 0:
+            log.info(
+                f"  {league} matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets."
+            )
+        elif stats.matched_events > 0 and stats.off_window_markets > 0 and stats.quoted_markets == 0:
+            log.info(
+                f"  {league} matched the sportsbook slate, but the visible full-game markets were outside the configured close window."
+            )
+        elif stats.matched_events > 0 and stats.quoted_markets == 0:
             log.info(f"  {league} events matched the sportsbook slate, but none of the matched markets were quoted.")
         else:
             log.info(f"  No {league} Kalshi candidates matched the current sportsbook slate.")
