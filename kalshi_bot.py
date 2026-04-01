@@ -264,6 +264,17 @@ class MLBProbableGame:
     away_starter: Optional[MLBProbableStarter]
 
 
+@dataclass
+class MLBOpportunityContext:
+    game: MLBProbableGame
+    odds_event: Optional[OddsEvent]
+    tracked_markets: list[dict[str, Any]]
+    quoted_market_count: int
+    score: float
+    starter_gap: float
+    favored_team: Optional[str]
+
+
 # -- Watchlist -----------------------------------------------------------------
 # Replace these examples with real Kalshi tickers and source mappings.
 WATCHLIST: list[WatchEntry] = [
@@ -465,6 +476,93 @@ def format_days(value: Optional[float]) -> str:
     return f"{value:.2f}d"
 
 
+def parse_era(value: Optional[str]) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_pitcher_record(record: str) -> tuple[Optional[int], Optional[int]]:
+    match = re.search(r"\((\d+)-(\d+)", record or "")
+    if not match:
+        return None, None
+    return int(match.group(1)), int(match.group(2))
+
+
+def starter_quality_score(starter: Optional[MLBProbableStarter]) -> float:
+    if starter is None:
+        return 0.0
+
+    score = 0.0
+    era = parse_era(starter.era)
+    if era is not None:
+        score += max(0.0, 8.0 - min(era, 8.0))
+
+    wins, losses = parse_pitcher_record(starter.record)
+    if wins is not None and losses is not None:
+        score += (wins - losses) * 0.75
+
+    return score
+
+
+def find_matching_odds_event(game: MLBProbableGame, odds_events: list[OddsEvent]) -> Optional[OddsEvent]:
+    home_key = canonical_team_name(game.home_team)
+    away_key = canonical_team_name(game.away_team)
+    for event in odds_events:
+        if canonical_team_name(event.home_team) == home_key and canonical_team_name(event.away_team) == away_key:
+            return event
+    return None
+
+
+def build_mlb_opportunity_contexts() -> list[MLBOpportunityContext]:
+    games = fetch_espn_mlb_probable_games()
+    odds_events = fetch_mlb_odds_events()
+    monitor = load_quote_window_monitor()
+    tracked_rows = [row for row in monitor.get("markets", {}).values() if str(row.get("league", "")).upper() == "MLB"]
+    contexts: list[MLBOpportunityContext] = []
+
+    for game in games:
+        matching_rows = [
+            row
+            for row in tracked_rows
+            if canonical_team_name(str(row.get("home_team", ""))) == canonical_team_name(game.home_team)
+            and canonical_team_name(str(row.get("away_team", ""))) == canonical_team_name(game.away_team)
+        ]
+        quoted_market_count = sum(1 for row in matching_rows if int(row.get("quoted_count", 0)) > 0)
+        odds_event = find_matching_odds_event(game, odds_events)
+
+        home_score = starter_quality_score(game.home_starter)
+        away_score = starter_quality_score(game.away_starter)
+        starter_gap = abs(home_score - away_score)
+        favored_team = None
+        if odds_event:
+            favored_team = odds_event.home_team if odds_event.home_probability >= odds_event.away_probability else odds_event.away_team
+
+        score = starter_gap
+        if odds_event:
+            score += abs(odds_event.home_probability - odds_event.away_probability) * 20.0
+        score += min(len(matching_rows), 4) * 1.5
+        score += quoted_market_count * 4.0
+
+        contexts.append(
+            MLBOpportunityContext(
+                game=game,
+                odds_event=odds_event,
+                tracked_markets=matching_rows,
+                quoted_market_count=quoted_market_count,
+                score=score,
+                starter_gap=starter_gap,
+                favored_team=favored_team,
+            )
+        )
+
+    contexts.sort(key=lambda item: item.score, reverse=True)
+    return contexts
+
+
 def print_quote_window_report(limit: int = 5) -> None:
     monitor = load_quote_window_monitor()
     markets = monitor.get("markets", {})
@@ -581,31 +679,36 @@ def print_quote_window_report(limit: int = 5) -> None:
 
 
 def print_mlb_probables_report(limit: int = 10) -> None:
-    games = fetch_espn_mlb_probable_games()
-    monitor = load_quote_window_monitor()
-    tracked_rows = [row for row in monitor.get("markets", {}).values() if str(row.get("league", "")).upper() == "MLB"]
+    contexts = build_mlb_opportunity_contexts()
 
     print("MLB Probable Starters Report")
     print("=" * 60)
-    print(f"games with ESPN probable starters data: {len(games)}")
-    print(f"tracked Kalshi MLB market rows: {len(tracked_rows)}")
+    print(f"games with ESPN probable starters data: {len(contexts)}")
+    tracked_total = sum(len(context.tracked_markets) for context in contexts)
+    print(f"tracked Kalshi MLB market rows: {tracked_total}")
+    if contexts:
+        print("\nTop MLB opportunity ranking:")
+        for index, context in enumerate(contexts[: min(limit, 5)], start=1):
+            favorite = context.favored_team or "n/a"
+            print(
+                f"  {index}. {context.game.away_team} at {context.game.home_team} | "
+                f"score={context.score:.2f} | starter_gap={context.starter_gap:.2f} | favorite={favorite} | "
+                f"tracked={len(context.tracked_markets)} | quoted={context.quoted_market_count}"
+            )
 
     shown = 0
-    for game in sorted(games, key=lambda item: item.commence_ts):
-        matching = [
-            row
-            for row in tracked_rows
-            if canonical_team_name(str(row.get("home_team", ""))) == canonical_team_name(game.home_team)
-            and canonical_team_name(str(row.get("away_team", ""))) == canonical_team_name(game.away_team)
-        ]
+    for context in contexts:
+        game = context.game
+        matching = context.tracked_markets
         home_starter = game.home_starter
         away_starter = game.away_starter
         close_timestamps = [int(row["last_close_ts"]) for row in matching if row.get("last_close_ts") is not None]
-        quoted_count = sum(1 for row in matching if int(row.get("quoted_count", 0)) > 0)
+        quoted_count = context.quoted_market_count
 
         print(
             f"\n{game.away_team} at {game.home_team} | {format_timestamp(game.commence_ts)} | "
-            f"tracked_markets={len(matching)} | quoted_markets={quoted_count}"
+            f"tracked_markets={len(matching)} | quoted_markets={quoted_count} | "
+            f"score={context.score:.2f} | starter_gap={context.starter_gap:.2f}"
         )
         if away_starter:
             away_line = f"  away starter: {away_starter.pitcher_name}"
@@ -634,6 +737,16 @@ def print_mlb_probables_report(limit: int = 10) -> None:
             )
         else:
             print("  Kalshi close timing: no tracked close timestamps yet")
+
+        if context.odds_event:
+            print(
+                "  sportsbook lean: "
+                f"{context.odds_event.away_team} {context.odds_event.away_probability:.3f} | "
+                f"{context.odds_event.home_team} {context.odds_event.home_probability:.3f} | "
+                f"favorite={context.favored_team}"
+            )
+        else:
+            print("  sportsbook lean: no matched odds event")
 
         shown += 1
         if shown >= limit:
