@@ -200,6 +200,14 @@ You can show more examples per league with:
 python kalshi_bot.py --quote-report --quote-report-limit 10
 ```
 
+### MLB probable starters report
+
+To see MLB probable starters alongside tracked Kalshi markets:
+
+```bash
+python kalshi_bot.py --mlb-probables-report
+```
+
 ### 4. Deploy to Railway
 
 1. Push all files to a private GitHub repo.

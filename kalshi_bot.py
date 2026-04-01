@@ -244,6 +244,25 @@ class OddsFetchResult:
     stale: bool = False
 
 
+@dataclass
+class MLBProbableStarter:
+    team: str
+    home_away: str
+    pitcher_name: str
+    record: str
+    era: Optional[str]
+
+
+@dataclass
+class MLBProbableGame:
+    event_id: str
+    commence_ts: int
+    home_team: str
+    away_team: str
+    home_starter: Optional[MLBProbableStarter]
+    away_starter: Optional[MLBProbableStarter]
+
+
 # -- Watchlist -----------------------------------------------------------------
 # Replace these examples with real Kalshi tickers and source mappings.
 WATCHLIST: list[WatchEntry] = [
@@ -558,6 +577,66 @@ def print_quote_window_report(limit: int = 5) -> None:
             f"quoted={summary['quoted']} | in_window={summary['in_window']} | "
             f"median_days_to_close={format_days(summary['median_days_to_close'])}"
         )
+
+
+def print_mlb_probables_report(limit: int = 10) -> None:
+    games = fetch_espn_mlb_probable_games()
+    monitor = load_quote_window_monitor()
+    tracked_rows = [row for row in monitor.get("markets", {}).values() if str(row.get("league", "")).upper() == "MLB"]
+
+    print("MLB Probable Starters Report")
+    print("=" * 60)
+    print(f"games with ESPN probable starters data: {len(games)}")
+    print(f"tracked Kalshi MLB market rows: {len(tracked_rows)}")
+
+    shown = 0
+    for game in sorted(games, key=lambda item: item.commence_ts):
+        matching = [
+            row
+            for row in tracked_rows
+            if canonical_team_name(str(row.get("home_team", ""))) == canonical_team_name(game.home_team)
+            and canonical_team_name(str(row.get("away_team", ""))) == canonical_team_name(game.away_team)
+        ]
+        home_starter = game.home_starter
+        away_starter = game.away_starter
+        close_timestamps = [int(row["last_close_ts"]) for row in matching if row.get("last_close_ts") is not None]
+        quoted_count = sum(1 for row in matching if int(row.get("quoted_count", 0)) > 0)
+
+        print(
+            f"\n{game.away_team} at {game.home_team} | {format_timestamp(game.commence_ts)} | "
+            f"tracked_markets={len(matching)} | quoted_markets={quoted_count}"
+        )
+        if away_starter:
+            away_line = f"  away starter: {away_starter.pitcher_name}"
+            if away_starter.record:
+                away_line += f" {away_starter.record}"
+            if away_starter.era:
+                away_line += f" | ERA {away_starter.era}"
+            print(away_line)
+        else:
+            print("  away starter: n/a")
+
+        if home_starter:
+            home_line = f"  home starter: {home_starter.pitcher_name}"
+            if home_starter.record:
+                home_line += f" {home_starter.record}"
+            if home_starter.era:
+                home_line += f" | ERA {home_starter.era}"
+            print(home_line)
+        else:
+            print("  home starter: n/a")
+
+        if close_timestamps:
+            print(
+                "  Kalshi close timing: "
+                f"earliest {format_timestamp(min(close_timestamps))}, latest {format_timestamp(max(close_timestamps))}"
+            )
+        else:
+            print("  Kalshi close timing: no tracked close timestamps yet")
+
+        shown += 1
+        if shown >= limit:
+            break
 
 
 def get_open_position(state: dict[str, Any], ticker: str) -> Optional[Position]:
@@ -1176,6 +1255,66 @@ def fetch_espn_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
                 home_probability=sum(home_probs) / len(home_probs),
                 away_probability=sum(away_probs) / len(away_probs),
                 sport_key=sport_key,
+            )
+        )
+
+    return results
+
+
+def parse_mlb_probable_starter(competitor: dict[str, Any]) -> Optional[MLBProbableStarter]:
+    probables = competitor.get("probables", [])
+    for probable in probables:
+        if probable.get("name") != "probableStartingPitcher":
+            continue
+        athlete = probable.get("athlete", {})
+        stats = {str(item.get("abbreviation", "")).strip(): str(item.get("displayValue", "")).strip() for item in probable.get("statistics", [])}
+        return MLBProbableStarter(
+            team=str(competitor.get("team", {}).get("displayName", "")).strip(),
+            home_away=str(competitor.get("homeAway", "")).strip(),
+            pitcher_name=str(athlete.get("displayName", "")).strip(),
+            record=str(probable.get("record", "")).strip(),
+            era=stats.get("ERA") or None,
+        )
+    return None
+
+
+def fetch_espn_mlb_probable_games() -> list[MLBProbableGame]:
+    payload = get_json(ESPN_SCOREBOARD_URLS[MLB_SPORT_KEY])
+    results: list[MLBProbableGame] = []
+    for event in payload.get("events", []):
+        event_id = str(event.get("id", "")).strip()
+        competitions = event.get("competitions", [])
+        if not event_id or not competitions:
+            continue
+        competition = competitions[0]
+        commence_ts = to_unix_timestamp(competition.get("date") or event.get("date"))
+        if commence_ts is None:
+            continue
+
+        home_team = ""
+        away_team = ""
+        home_starter: Optional[MLBProbableStarter] = None
+        away_starter: Optional[MLBProbableStarter] = None
+        for competitor in competition.get("competitors", []):
+            display_name = str(competitor.get("team", {}).get("displayName", "")).strip()
+            if competitor.get("homeAway") == "home":
+                home_team = display_name
+                home_starter = parse_mlb_probable_starter(competitor)
+            elif competitor.get("homeAway") == "away":
+                away_team = display_name
+                away_starter = parse_mlb_probable_starter(competitor)
+
+        if not home_team or not away_team:
+            continue
+
+        results.append(
+            MLBProbableGame(
+                event_id=event_id,
+                commence_ts=commence_ts,
+                home_team=home_team,
+                away_team=away_team,
+                home_starter=home_starter,
+                away_starter=away_starter,
             )
         )
 
@@ -2068,10 +2207,24 @@ if __name__ == "__main__":
         default=5,
         help="How many example rows per league to show in the quote report.",
     )
+    parser.add_argument(
+        "--mlb-probables-report",
+        action="store_true",
+        help="Print an MLB probable starters report joined with tracked Kalshi markets and exit.",
+    )
+    parser.add_argument(
+        "--mlb-probables-limit",
+        type=int,
+        default=10,
+        help="How many MLB games to show in the probable starters report.",
+    )
     args = parser.parse_args()
 
     if args.quote_report:
         print_quote_window_report(limit=max(1, args.quote_report_limit))
+        raise SystemExit(0)
+    if args.mlb_probables_report:
+        print_mlb_probables_report(limit=max(1, args.mlb_probables_limit))
         raise SystemExit(0)
 
     while True:
