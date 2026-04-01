@@ -220,6 +220,8 @@ python kalshi_bot.py --mlb-trigger-report
 
 This report now highlights trigger severity, starter-change type, and whether a later Kalshi quote appeared after the trigger fired.
 
+In `AUTO_MLB_PREGAME` mode, the bot also uses probable-starter context to boost higher-conviction MLB candidate rankings before any live starter-change diff arrives.
+
 ### 4. Deploy to Railway
 
 1. Push all files to a private GitHub repo.

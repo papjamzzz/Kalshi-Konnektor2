@@ -701,6 +701,15 @@ def find_mlb_context_for_change(change: MLBStarterChange, contexts: list[MLBOppo
     return None
 
 
+def find_mlb_context_for_event(event: OddsEvent, contexts: list[MLBOpportunityContext]) -> Optional[MLBOpportunityContext]:
+    away_key = canonical_team_name(event.away_team)
+    home_key = canonical_team_name(event.home_team)
+    for context in contexts:
+        if canonical_team_name(context.game.away_team) == away_key and canonical_team_name(context.game.home_team) == home_key:
+            return context
+    return None
+
+
 def log_mlb_trigger_candidates(changes: list[MLBStarterChange], contexts: list[MLBOpportunityContext], heading: str) -> None:
     if not changes:
         return
@@ -1998,7 +2007,7 @@ def match_kalshi_event_to_odds_event(kalshi_event: Any, events: list[OddsEvent])
     return match_market_to_event(pseudo_market, events)
 
 
-def choose_market_side(market: Any, event: OddsEvent) -> Optional[tuple[str, float]]:
+def choose_market_side(market: Any, event: OddsEvent) -> Optional[tuple[str, float, str]]:
     yes_label = str(getattr(market, "yes_sub_title", "") or getattr(market, "title", "") or "")
     no_label = str(getattr(market, "no_sub_title", "") or "")
     teams = [event.home_team, event.away_team]
@@ -2012,22 +2021,22 @@ def choose_market_side(market: Any, event: OddsEvent) -> Optional[tuple[str, flo
     if yes_team:
         probability = event.home_probability if canonical_team_name(yes_team) == canonical_team_name(event.home_team) else event.away_probability
         if yes_ask is not None and yes_ask <= AUTO_MAX_PRICE_CENTS:
-            return "yes", probability
+            return "yes", probability, yes_team
 
     if no_team:
         no_probability = event.home_probability if canonical_team_name(no_team) == canonical_team_name(event.home_team) else event.away_probability
         if no_ask is not None and no_ask <= AUTO_MAX_PRICE_CENTS:
-            return "no", no_probability
+            return "no", no_probability, no_team
 
     if yes_team and no_ask is not None and no_ask <= AUTO_MAX_PRICE_CENTS:
         return "no", 1.0 - (
             event.home_probability if canonical_team_name(yes_team) == canonical_team_name(event.home_team) else event.away_probability
-        )
+        ), event.home_team if canonical_team_name(yes_team) == canonical_team_name(event.away_team) else event.away_team
 
     if no_team and yes_ask is not None and yes_ask <= AUTO_MAX_PRICE_CENTS:
         return "yes", 1.0 - (
             event.home_probability if canonical_team_name(no_team) == canonical_team_name(event.home_team) else event.away_probability
-        )
+        ), event.home_team if canonical_team_name(no_team) == canonical_team_name(event.away_team) else event.away_team
 
     return None
 
@@ -2129,6 +2138,8 @@ def build_watch_entry_from_market(
     probability: float,
     confidence: float,
     league: str,
+    score_bonus: float = 0.0,
+    notes_suffix: str = "",
 ) -> Optional[tuple[float, WatchEntry]]:
     ask = getattr(market, f"{side}_ask", None)
     if ask is None or ask > AUTO_MAX_PRICE_CENTS:
@@ -2141,7 +2152,7 @@ def build_watch_entry_from_market(
         return None
 
     return (
-        edge_guess,
+        edge_guess + score_bonus,
         WatchEntry(
             ticker=ticker,
             side=side,
@@ -2155,7 +2166,10 @@ def build_watch_entry_from_market(
                 weight=1.0,
                 label=f"{league.lower()}-consensus:{event.away_team} at {event.home_team}",
             ),
-            notes=f"auto-{league.lower()} event={event.event_id} confidence={confidence:.2f}",
+            notes=(
+                f"auto-{league.lower()} event={event.event_id} confidence={confidence:.2f}"
+                f"{notes_suffix}"
+            ),
             league=league,
         ),
     )
@@ -2167,6 +2181,14 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
         return []
 
     stats = LeagueScanStats(league=league)
+    mlb_contexts: list[MLBOpportunityContext] = []
+    if league == "MLB":
+        try:
+            mlb_contexts = build_mlb_opportunity_contexts()
+            log.info(f"  MLB starter contexts loaded: {len(mlb_contexts)}")
+        except Exception as exc:
+            log.warning(f"  Could not build MLB starter contexts for auto-scan: {exc}")
+
     quote_monitor = load_quote_window_monitor() if ENABLE_QUOTE_WINDOW_MONITOR else {"markets": {}}
     newly_quoted_markets: list[tuple[str, Optional[int], str]] = []
     series_tickers = discover_series_tickers(client, league=league)
@@ -2239,7 +2261,24 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
             if not side_choice:
                 continue
 
-            side, probability = side_choice
+            side, probability, selected_team = side_choice
+            score_bonus = 0.0
+            notes_suffix = ""
+            if league == "MLB" and mlb_contexts:
+                mlb_context = find_mlb_context_for_event(event, mlb_contexts)
+                if mlb_context:
+                    score_bonus += min(mlb_context.score, 20.0) * 0.3
+                    score_bonus += min(mlb_context.starter_gap, 10.0) * 0.2
+                    if mlb_context.favored_team:
+                        if canonical_team_name(selected_team) == canonical_team_name(mlb_context.favored_team):
+                            score_bonus += 1.5
+                    away_name = mlb_context.game.away_starter.pitcher_name if mlb_context.game.away_starter else "TBD"
+                    home_name = mlb_context.game.home_starter.pitcher_name if mlb_context.game.home_starter else "TBD"
+                    notes_suffix = (
+                        f" mlb_score={mlb_context.score:.2f}"
+                        f" starter_gap={mlb_context.starter_gap:.2f}"
+                        f" starters={away_name} vs {home_name}"
+                    )
             built = build_watch_entry_from_market(
                 market=market_to_trade,
                 event=event,
@@ -2247,6 +2286,8 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
                 probability=probability,
                 confidence=matched_event.confidence,
                 league=league,
+                score_bonus=score_bonus,
+                notes_suffix=notes_suffix,
             )
             if built:
                 stats.candidate_markets += 1
