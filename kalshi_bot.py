@@ -439,6 +439,12 @@ def format_minutes(value: Optional[int]) -> str:
     return f"{value}m ({hours:.1f}h)"
 
 
+def format_days(value: Optional[float]) -> str:
+    if value is None:
+        return "n/a"
+    return f"{value:.2f}d"
+
+
 def print_quote_window_report(limit: int = 5) -> None:
     monitor = load_quote_window_monitor()
     markets = monitor.get("markets", {})
@@ -451,6 +457,7 @@ def print_quote_window_report(limit: int = 5) -> None:
         league = str(payload.get("league", "unknown")).upper()
         grouped.setdefault(league, []).append(payload)
 
+    league_scores: list[tuple[float, str, dict[str, Any]]] = []
     print("Quote Window Report")
     print("=" * 60)
     for league in sorted(grouped):
@@ -459,6 +466,11 @@ def print_quote_window_report(limit: int = 5) -> None:
         in_window = [row for row in rows if row.get("last_in_window")]
         seen_counts = [int(row.get("seen_count", 0)) for row in rows]
         close_timestamps = [int(row["last_close_ts"]) for row in rows if row.get("last_close_ts") is not None]
+        days_until_close = [
+            (int(row["last_close_ts"]) - int(row["last_seen_at"])) / 86400.0
+            for row in rows
+            if row.get("last_close_ts") is not None and row.get("last_seen_at") is not None
+        ]
         minutes_to_quote = [
             int(row["minutes_until_close_when_first_quoted"])
             for row in quoted
@@ -479,6 +491,14 @@ def print_quote_window_report(limit: int = 5) -> None:
             )
         else:
             print("  close timing range: no close timestamps recorded yet")
+        if days_until_close:
+            print(
+                "  days from observation to close: "
+                f"median {format_days(statistics.median(days_until_close))}, "
+                f"shortest {format_days(min(days_until_close))}, longest {format_days(max(days_until_close))}"
+            )
+        else:
+            print("  days from observation to close: no close timestamps recorded yet")
         if minutes_to_quote:
             print(
                 "  first quote timing: median "
@@ -509,6 +529,35 @@ def print_quote_window_report(limit: int = 5) -> None:
                     f"{row.get('ticker')} | first quoted {format_timestamp(row.get('first_quoted_at'))} | "
                     f"{format_minutes(row.get('minutes_until_close_when_first_quoted'))} before close"
                 )
+
+        score = 0.0
+        score += len(quoted) * 10.0
+        score += len(in_window) * 5.0
+        score += min(len(rows), 25) * 0.25
+        if days_until_close:
+            score += max(0.0, 10.0 - statistics.median(days_until_close))
+        league_scores.append(
+            (
+                score,
+                league,
+                {
+                    "tracked": len(rows),
+                    "quoted": len(quoted),
+                    "in_window": len(in_window),
+                    "median_days_to_close": statistics.median(days_until_close) if days_until_close else None,
+                },
+            )
+        )
+
+    print("\nResource Recommendation")
+    print("=" * 60)
+    ranked = sorted(league_scores, key=lambda item: item[0], reverse=True)
+    for index, (score, league, summary) in enumerate(ranked, start=1):
+        print(
+            f"{index}. {league} | score {score:.2f} | tracked={summary['tracked']} | "
+            f"quoted={summary['quoted']} | in_window={summary['in_window']} | "
+            f"median_days_to_close={format_days(summary['median_days_to_close'])}"
+        )
 
 
 def get_open_position(state: dict[str, Any], ticker: str) -> Optional[Position]:
