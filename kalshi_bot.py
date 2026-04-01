@@ -97,6 +97,7 @@ ODDS_CACHE_WRITE_ON_SUCCESS = os.environ.get("ODDS_CACHE_WRITE_ON_SUCCESS", "tru
 ENABLE_ESPN_ODDS_FALLBACK = os.environ.get("ENABLE_ESPN_ODDS_FALLBACK", "true").lower() == "true"
 QUOTE_WINDOW_MONITOR_FILE = Path(os.environ.get("QUOTE_WINDOW_MONITOR_FILE", "quote_window_monitor.json"))
 ENABLE_QUOTE_WINDOW_MONITOR = os.environ.get("ENABLE_QUOTE_WINDOW_MONITOR", "true").lower() == "true"
+MLB_TRIGGER_LEDGER_FILE = Path(os.environ.get("MLB_TRIGGER_LEDGER_FILE", "mlb_trigger_ledger.json"))
 NBA_SPORT_KEY = "basketball_nba"
 NHL_SPORT_KEY = "icehockey_nhl"
 MLB_SPORT_KEY = "baseball_mlb"
@@ -457,6 +458,17 @@ def save_quote_window_monitor(monitor: dict[str, Any]) -> None:
     save_json_file(QUOTE_WINDOW_MONITOR_FILE, monitor)
 
 
+def load_mlb_trigger_ledger() -> dict[str, Any]:
+    ledger = load_json_file(MLB_TRIGGER_LEDGER_FILE)
+    ledger.setdefault("triggers", [])
+    return ledger
+
+
+def save_mlb_trigger_ledger(ledger: dict[str, Any]) -> None:
+    ledger.setdefault("triggers", [])
+    save_json_file(MLB_TRIGGER_LEDGER_FILE, ledger)
+
+
 def format_timestamp(ts: Optional[int]) -> str:
     if ts is None:
         return "n/a"
@@ -576,6 +588,8 @@ def log_mlb_trigger_candidates(diff_lines: list[str], contexts: list[MLBOpportun
     if not diff_lines:
         return
 
+    ledger = load_mlb_trigger_ledger()
+    trigger_rows = ledger.setdefault("triggers", [])
     seen_keys: set[str] = set()
     printed = 0
     for line in diff_lines:
@@ -608,9 +622,30 @@ def log_mlb_trigger_candidates(diff_lines: list[str], contexts: list[MLBOpportun
                 f"{context.odds_event.away_team} {context.odds_event.away_probability:.3f} | "
                 f"{context.odds_event.home_team} {context.odds_event.home_probability:.3f}"
             )
+
+        trigger_rows.append(
+            {
+                "observed_at": int(time.time()),
+                "heading": heading,
+                "diff_line": line,
+                "event_id": context.game.event_id,
+                "away_team": context.game.away_team,
+                "home_team": context.game.home_team,
+                "commence_ts": context.game.commence_ts,
+                "score": round(context.score, 4),
+                "starter_gap": round(context.starter_gap, 4),
+                "favored_team": context.favored_team,
+                "tracked_markets": len(context.tracked_markets),
+                "quoted_market_count": context.quoted_market_count,
+                "away_starter": context.game.away_starter.pitcher_name if context.game.away_starter else None,
+                "home_starter": context.game.home_starter.pitcher_name if context.game.home_starter else None,
+            }
+        )
         printed += 1
         if printed >= 3:
             break
+
+    save_mlb_trigger_ledger(ledger)
 
 
 def print_quote_window_report(limit: int = 5) -> None:
@@ -801,6 +836,77 @@ def print_mlb_probables_report(limit: int = 10) -> None:
         shown += 1
         if shown >= limit:
             break
+
+
+def print_mlb_trigger_ledger_report(limit: int = 20) -> None:
+    ledger = load_mlb_trigger_ledger()
+    triggers = list(ledger.get("triggers", []))
+    monitor = load_quote_window_monitor()
+    monitor_rows = [row for row in monitor.get("markets", {}).values() if str(row.get("league", "")).upper() == "MLB"]
+    print("MLB Trigger Ledger Report")
+    print("=" * 60)
+    print(f"stored triggers: {len(triggers)}")
+    if not triggers:
+        print("No MLB triggers recorded yet.")
+        return
+
+    by_game: dict[str, list[dict[str, Any]]] = {}
+    for trigger in triggers:
+        key = str(trigger.get("event_id", "unknown"))
+        by_game.setdefault(key, []).append(trigger)
+
+    print(f"unique games triggered: {len(by_game)}")
+    correlated = 0
+    for trigger in triggers:
+        trigger_ts = int(trigger.get("observed_at", 0))
+        home_key = canonical_team_name(str(trigger.get("home_team", "")))
+        away_key = canonical_team_name(str(trigger.get("away_team", "")))
+        related_rows = [
+            row
+            for row in monitor_rows
+            if canonical_team_name(str(row.get("home_team", ""))) == home_key
+            and canonical_team_name(str(row.get("away_team", ""))) == away_key
+        ]
+        if any(row.get("first_quoted_at") and int(row["first_quoted_at"]) >= trigger_ts for row in related_rows):
+            correlated += 1
+    print(f"triggers with later quote evidence: {correlated}")
+
+    sorted_recent = sorted(triggers, key=lambda row: int(row.get("observed_at", 0)), reverse=True)
+    print("\nRecent triggers:")
+    for row in sorted_recent[:limit]:
+        trigger_ts = int(row.get("observed_at", 0))
+        home_key = canonical_team_name(str(row.get("home_team", "")))
+        away_key = canonical_team_name(str(row.get("away_team", "")))
+        related_rows = [
+            monitor_row
+            for monitor_row in monitor_rows
+            if canonical_team_name(str(monitor_row.get("home_team", ""))) == home_key
+            and canonical_team_name(str(monitor_row.get("away_team", ""))) == away_key
+        ]
+        first_quote_after = None
+        for monitor_row in related_rows:
+            first_quoted_at = monitor_row.get("first_quoted_at")
+            if first_quoted_at and int(first_quoted_at) >= trigger_ts:
+                if first_quote_after is None or int(first_quoted_at) < first_quote_after:
+                    first_quote_after = int(first_quoted_at)
+        print(
+            " - "
+            f"{format_timestamp(row.get('observed_at'))} | {row.get('away_team')} at {row.get('home_team')} | "
+            f"score={row.get('score'):.2f} | gap={row.get('starter_gap'):.2f} | "
+            f"favorite={row.get('favored_team') or 'n/a'} | tracked={row.get('tracked_markets')} | "
+            f"quoted={row.get('quoted_market_count')} | heading={row.get('heading')} | "
+            f"quote_after_trigger={format_timestamp(first_quote_after)}"
+        )
+
+    print("\nMost repeated games:")
+    repeated = sorted(by_game.values(), key=len, reverse=True)
+    for rows in repeated[: min(5, len(repeated))]:
+        first = rows[0]
+        print(
+            " - "
+            f"{first.get('away_team')} at {first.get('home_team')} | triggers={len(rows)} | "
+            f"latest_score={first.get('score'):.2f}"
+        )
 
 
 def get_open_position(state: dict[str, Any], ticker: str) -> Optional[Position]:
@@ -2399,6 +2505,17 @@ if __name__ == "__main__":
         default=10,
         help="How many MLB games to show in the probable starters report.",
     )
+    parser.add_argument(
+        "--mlb-trigger-report",
+        action="store_true",
+        help="Print the stored MLB starter trigger ledger and exit.",
+    )
+    parser.add_argument(
+        "--mlb-trigger-limit",
+        type=int,
+        default=20,
+        help="How many recent MLB triggers to show in the trigger ledger report.",
+    )
     args = parser.parse_args()
 
     if args.quote_report:
@@ -2406,6 +2523,9 @@ if __name__ == "__main__":
         raise SystemExit(0)
     if args.mlb_probables_report:
         print_mlb_probables_report(limit=max(1, args.mlb_probables_limit))
+        raise SystemExit(0)
+    if args.mlb_trigger_report:
+        print_mlb_trigger_ledger_report(limit=max(1, args.mlb_trigger_limit))
         raise SystemExit(0)
 
     while True:

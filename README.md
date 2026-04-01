@@ -210,6 +210,14 @@ To see MLB probable starters alongside tracked Kalshi markets:
 python kalshi_bot.py --mlb-probables-report
 ```
 
+### MLB trigger ledger report
+
+To inspect recorded MLB starter-change triggers:
+
+```bash
+python kalshi_bot.py --mlb-trigger-report
+```
+
 ### 4. Deploy to Railway
 
 1. Push all files to a private GitHub repo.
@@ -238,6 +246,7 @@ python kalshi_bot.py --mlb-probables-report
 | `ENABLE_ESPN_ODDS_FALLBACK` | true | Use ESPN scoreboard odds as a second live provider before falling back to cache |
 | `ENABLE_QUOTE_WINDOW_MONITOR` | true | Track when matched full-game Kalshi markets first become quoted |
 | `QUOTE_WINDOW_MONITOR_FILE` | quote_window_monitor.json | Persistent log of matched market quote timing |
+| `MLB_TRIGGER_LEDGER_FILE` | mlb_trigger_ledger.json | Persistent log of MLB starter-change trigger candidates |
 | `MAX_AUTO_CANDIDATES` | 5 | How many NBA candidates to keep per scan |
 | `AUTO_CONTRACTS` | 2 | Default size per automatically selected trade |
 | `AUTO_MAX_PRICE_CENTS` | 70 | Avoid paying too much for auto-selected contracts |
@@ -263,6 +272,7 @@ python kalshi_bot.py --mlb-probables-report
 - `injury_watcher_state.json` stores the last NBA and NHL watcher snapshots.
 - `odds_cache.json` stores the last successful sportsbook snapshot for each auto-scanned league.
 - `quote_window_monitor.json` stores when matched full-game markets were first seen and first quoted.
+- `mlb_trigger_ledger.json` stores ranked MLB starter-change trigger candidates over time.
 - The live sportsbook chain is now: The Odds API -> ESPN scoreboard odds -> cached snapshot.
 - Daily trade count and realized PnL are also stored in `bot_state.json`, so safety limits survive restarts.
 - Polymarket is queried through the public Gamma API.
