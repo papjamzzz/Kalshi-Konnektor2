@@ -92,6 +92,10 @@ NHL_KALSHI_SERIES = ("KXNHLGAME",)
 ENABLE_NBA_INJURY_WATCHER = os.environ.get("ENABLE_NBA_INJURY_WATCHER", "true").lower() == "true"
 ENABLE_NHL_INJURY_WATCHER = os.environ.get("ENABLE_NHL_INJURY_WATCHER", "true").lower() == "true"
 INJURY_WATCHER_STATE_FILE = Path(os.environ.get("INJURY_WATCHER_STATE_FILE", "injury_watcher_state.json"))
+NBA_SERIES_DISCOVERY_TERMS = ("nba", "pro basketball")
+NHL_SERIES_DISCOVERY_TERMS = ("nhl", "pro hockey")
+INJURY_WATCHER_INTERVAL_SECONDS = int(os.environ.get("INJURY_WATCHER_INTERVAL_SECONDS", "900"))
+WATCHER_LAST_POLLED: dict[str, float] = {}
 
 
 # -- Data model ----------------------------------------------------------------
@@ -810,6 +814,33 @@ def fetch_events_for_series(client, series_tickers: tuple[str, ...]) -> list[Any
     return events
 
 
+def discover_series_tickers(client, league: str) -> tuple[str, ...]:
+    preferred = NBA_KALSHI_SERIES if league == "NBA" else NHL_KALSHI_SERIES
+    terms = NBA_SERIES_DISCOVERY_TERMS if league == "NBA" else NHL_SERIES_DISCOVERY_TERMS
+
+    try:
+        response = client["series_api"].get_series(status="open")
+    except Exception as exc:
+        log.warning(f"  Could not fetch Kalshi series metadata for {league}: {exc}")
+        return preferred
+
+    discovered: list[str] = []
+    for series in list(getattr(response, "series", []) or []):
+        title = str(getattr(series, "title", "") or "")
+        category = str(getattr(series, "category", "") or "")
+        ticker = str(getattr(series, "ticker", "") or "")
+        searchable = normalize_text(" ".join([title, category, ticker]))
+        if "sports" not in searchable:
+            continue
+        if not any(term in searchable for term in terms):
+            continue
+        if "game" in searchable or "winner" in searchable or "moneyline" in searchable or "single game" in searchable:
+            discovered.append(ticker)
+
+    ordered = list(dict.fromkeys([*preferred, *sorted(discovered)]))
+    return tuple(ordered)
+
+
 def market_closes_soon(market: Any) -> bool:
     close_ts = to_unix_timestamp(getattr(market, "close_time", None) or getattr(market, "expiration_time", None))
     if close_ts is None:
@@ -972,7 +1003,8 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
         log.info(f"  No {league} sportsbook events available for auto-scan.")
         return []
 
-    series_tickers = NBA_KALSHI_SERIES if league == "NBA" else NHL_KALSHI_SERIES
+    series_tickers = discover_series_tickers(client, league=league)
+    log.info(f"  Kalshi {league} series search set: {', '.join(series_tickers) if series_tickers else 'none'}")
     kalshi_events = fetch_events_for_series(client, series_tickers=series_tickers)
     log.info(f"  Auto-scan pulled {len(kalshi_events)} Kalshi events for {league}.")
     candidates: list[tuple[float, WatchEntry]] = []
@@ -1128,10 +1160,22 @@ def summarize_diff_lines(lines: list[str], limit: int = 5) -> str:
     return " | ".join(preview)
 
 
+def watcher_should_poll(name: str) -> bool:
+    now = time.time()
+    last_polled = WATCHER_LAST_POLLED.get(name, 0.0)
+    if now - last_polled < INJURY_WATCHER_INTERVAL_SECONDS:
+        return False
+    WATCHER_LAST_POLLED[name] = now
+    return True
+
+
 def poll_injury_watchers() -> None:
-    if ENABLE_NBA_INJURY_WATCHER:
+    if ENABLE_NBA_INJURY_WATCHER and watcher_should_poll("nba"):
         try:
-            nba_diff = NBAInjuryWatcher(INJURY_WATCHER_STATE_FILE, timeout_seconds=REQUEST_TIMEOUT_SECONDS).poll()
+            nba_diff = NBAInjuryWatcher(
+                INJURY_WATCHER_STATE_FILE,
+                timeout_seconds=max(REQUEST_TIMEOUT_SECONDS, 20),
+            ).poll()
             if nba_diff and nba_diff.changed:
                 log.info(f"NBA injury watcher updated from {nba_diff.fetched_from}")
                 log.info(f"  Added: {summarize_diff_lines(nba_diff.added)}")
@@ -1140,7 +1184,7 @@ def poll_injury_watchers() -> None:
         except Exception as exc:
             log.warning(f"NBA injury watcher failed: {exc}")
 
-    if ENABLE_NHL_INJURY_WATCHER:
+    if ENABLE_NHL_INJURY_WATCHER and watcher_should_poll("nhl"):
         try:
             nhl_diff = NHLStatusWatcher(INJURY_WATCHER_STATE_FILE, timeout_seconds=REQUEST_TIMEOUT_SECONDS).poll()
             if nhl_diff and nhl_diff.changed:

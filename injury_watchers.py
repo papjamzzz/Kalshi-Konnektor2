@@ -130,7 +130,10 @@ class NBAInjuryWatcher(BaseInjuryWatcher):
     SNAPSHOT_KEY = "nba_injury_report"
 
     def latest_report_url(self) -> Optional[str]:
-        html = self.fetch_text(self.PAGE_URL)
+        try:
+            html = self.fetch_text(self.PAGE_URL)
+        except Exception:
+            html = self.fetch_text(self.PAGE_URL.replace("https://", "http://"))
         soup = BeautifulSoup(html, "html.parser")
         links: list[str] = []
 
@@ -168,7 +171,11 @@ class NBAInjuryWatcher(BaseInjuryWatcher):
         report_url = self.latest_report_url()
         if not report_url:
             return None
-        lines = self.extract_relevant_lines(self.fetch_bytes(report_url))
+        try:
+            pdf_bytes = self.fetch_bytes(report_url)
+        except Exception:
+            pdf_bytes = self.fetch_bytes(report_url)
+        lines = self.extract_relevant_lines(pdf_bytes)
         return WatcherSnapshot(
             source="NBA Official Injury Report",
             fetched_from=report_url,

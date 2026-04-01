@@ -179,6 +179,7 @@ python kalshi_bot.py
 | `MIN_AUTO_MATCH_CONFIDENCE` | 0.6 | Minimum confidence for matching a Kalshi market to an NBA game |
 | `ENABLE_NBA_INJURY_WATCHER` | true | Poll and diff the official NBA injury report |
 | `ENABLE_NHL_INJURY_WATCHER` | true | Poll and diff the latest NHL status report |
+| `INJURY_WATCHER_INTERVAL_SECONDS` | 900 | Minimum seconds between watcher polls so a slow source does not stall the loop |
 | `MAX_CONTRACTS_PER_POSITION` | 10 | Hard cap on contracts per trade |
 | `MAX_POSITION_COST_CENTS` | 2000 | Hard cap on cost of a single new position |
 | `MAX_TOTAL_EXPOSURE_CENTS` | 5000 | Hard cap on open position cost across the bot |
