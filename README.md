@@ -145,11 +145,13 @@ The bot now includes two news-diff watchers:
 
 - `NBA Official Injury Report watcher`
 - `NHL Status Report watcher`
+- `MLB Probable Starters watcher`
 
 Why both:
 
 - NHL has live Kalshi game events available right now, so it is the fastest route to a working league module.
 - NBA has a clearer official reporting cadence, so it remains a strong second league once market discovery is reliable.
+- MLB now adds a league-specific starter-change trigger surface, which is the best current fit for the tracked Kalshi market timing.
 
 Current use:
 
@@ -242,6 +244,7 @@ python kalshi_bot.py --mlb-probables-report
 | `MIN_AUTO_MATCH_CONFIDENCE` | 0.6 | Minimum confidence for matching a Kalshi market to an NBA game |
 | `ENABLE_NBA_INJURY_WATCHER` | true | Poll and diff the official NBA injury report |
 | `ENABLE_NHL_INJURY_WATCHER` | true | Poll and diff the latest NHL status report |
+| `ENABLE_MLB_STARTER_WATCHER` | true | Poll and diff ESPN MLB probable starting pitchers |
 | `INJURY_WATCHER_INTERVAL_SECONDS` | 900 | Minimum seconds between watcher polls so a slow source does not stall the loop |
 | `MAX_CONTRACTS_PER_POSITION` | 10 | Hard cap on contracts per trade |
 | `MAX_POSITION_COST_CENTS` | 2000 | Hard cap on cost of a single new position |

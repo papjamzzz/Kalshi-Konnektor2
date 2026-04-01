@@ -36,7 +36,7 @@ from typing import Any, Optional
 import requests
 from dotenv import load_dotenv
 
-from injury_watchers import NBAInjuryWatcher, NHLStatusWatcher
+from injury_watchers import MLBProbableStarterWatcher, NBAInjuryWatcher, NHLStatusWatcher
 
 load_dotenv()
 
@@ -105,6 +105,7 @@ NHL_KALSHI_SERIES = ("KXNHLGAME",)
 MLB_KALSHI_SERIES: tuple[str, ...] = ("KXMLBGAME",)
 ENABLE_NBA_INJURY_WATCHER = os.environ.get("ENABLE_NBA_INJURY_WATCHER", "true").lower() == "true"
 ENABLE_NHL_INJURY_WATCHER = os.environ.get("ENABLE_NHL_INJURY_WATCHER", "true").lower() == "true"
+ENABLE_MLB_STARTER_WATCHER = os.environ.get("ENABLE_MLB_STARTER_WATCHER", "true").lower() == "true"
 INJURY_WATCHER_STATE_FILE = Path(os.environ.get("INJURY_WATCHER_STATE_FILE", "injury_watcher_state.json"))
 NBA_SERIES_DISCOVERY_TERMS = ("nba", "pro basketball")
 NHL_SERIES_DISCOVERY_TERMS = ("nhl", "pro hockey")
@@ -2034,6 +2035,20 @@ def poll_injury_watchers() -> None:
                     log.info(f"  Removed: {summarize_diff_lines(nhl_diff.removed)}")
         except Exception as exc:
             log.warning(f"NHL status watcher failed: {exc}")
+
+    if ENABLE_MLB_STARTER_WATCHER and watcher_should_poll("mlb_starters"):
+        try:
+            mlb_diff = MLBProbableStarterWatcher(
+                INJURY_WATCHER_STATE_FILE,
+                timeout_seconds=REQUEST_TIMEOUT_SECONDS,
+            ).poll()
+            if mlb_diff and mlb_diff.changed:
+                log.info(f"MLB starter watcher updated from {mlb_diff.fetched_from}")
+                log.info(f"  Added: {summarize_diff_lines(mlb_diff.added)}")
+                if mlb_diff.removed:
+                    log.info(f"  Removed: {summarize_diff_lines(mlb_diff.removed)}")
+        except Exception as exc:
+            log.warning(f"MLB starter watcher failed: {exc}")
 
 
 # -- Main loop -----------------------------------------------------------------
