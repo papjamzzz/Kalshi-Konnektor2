@@ -14,8 +14,9 @@ fair Kalshi price, and only buys when the modeled edge clears a configurable
 threshold after accounting for spread.
 
 Build direction:
-- Phase 1: NBA regular season + playoffs, pregame only
-- Phase 2: NHL pregame only
+- Phase 1: NHL pregame only
+- Phase 2: NBA regular season + playoffs, pregame only
+- Phase 3: MLB and third-wave data
 """
 
 from __future__ import annotations
@@ -70,6 +71,7 @@ MAX_DAILY_REALIZED_LOSS_CENTS = int(os.environ.get("MAX_DAILY_REALIZED_LOSS_CENT
 DISABLE_NEW_ENTRIES = os.environ.get("DISABLE_NEW_ENTRIES", "false").lower() == "true"
 STATE_FILE = Path(os.environ.get("STATE_FILE", "bot_state.json"))
 AUTO_NBA_PREGAME = os.environ.get("AUTO_NBA_PREGAME", "false").lower() == "true"
+AUTO_NHL_PREGAME = os.environ.get("AUTO_NHL_PREGAME", "false").lower() == "true"
 NBA_LOOKAHEAD_HOURS = int(os.environ.get("NBA_LOOKAHEAD_HOURS", "24"))
 MAX_AUTO_CANDIDATES = int(os.environ.get("MAX_AUTO_CANDIDATES", "5"))
 AUTO_CONTRACTS = int(os.environ.get("AUTO_CONTRACTS", "2"))
@@ -87,6 +89,7 @@ ODDS_API_KEY = os.environ.get("ODDS_API_KEY")
 ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports"
 POLYMARKET_BASE_URL = "https://gamma-api.polymarket.com"
 NBA_SPORT_KEY = "basketball_nba"
+NHL_SPORT_KEY = "icehockey_nhl"
 NBA_KALSHI_SERIES = ("KXNBAGAMES", "KXMVENBASINGLEGAME")
 NHL_KALSHI_SERIES = ("KXNHLGAME",)
 ENABLE_NBA_INJURY_WATCHER = os.environ.get("ENABLE_NBA_INJURY_WATCHER", "true").lower() == "true"
@@ -736,6 +739,10 @@ def fetch_nba_odds_events() -> list[OddsEvent]:
     return fetch_moneyline_events_for_sport(NBA_SPORT_KEY)
 
 
+def fetch_nhl_odds_events() -> list[OddsEvent]:
+    return fetch_moneyline_events_for_sport(NHL_SPORT_KEY)
+
+
 def get_markets_page(
     client,
     cursor: Optional[str] = None,
@@ -1047,6 +1054,11 @@ def build_auto_nba_watchlist(client) -> list[WatchEntry]:
     return build_auto_league_watchlist(client, league="NBA", odds_events=odds_events)
 
 
+def build_auto_nhl_watchlist(client) -> list[WatchEntry]:
+    odds_events = fetch_nhl_odds_events()
+    return build_auto_league_watchlist(client, league="NHL", odds_events=odds_events)
+
+
 # -- Edge model ----------------------------------------------------------------
 def aggregate_fair_probability(entry: WatchEntry) -> tuple[Optional[float], list[SourceSignal]]:
     signals: list[SourceSignal] = []
@@ -1208,7 +1220,8 @@ def run() -> None:
         MAX_ACTIVE_POSITIONS,
     )
     log.info(
-        "Auto mode: nba_pregame=%s  lookahead=%sh  auto_candidates=%s  auto_contracts=%s",
+        "Auto mode: nhl_pregame=%s  nba_pregame=%s  lookahead=%sh  auto_candidates=%s  auto_contracts=%s",
+        AUTO_NHL_PREGAME,
         AUTO_NBA_PREGAME,
         NBA_LOOKAHEAD_HOURS,
         MAX_AUTO_CANDIDATES,
@@ -1230,7 +1243,12 @@ def run() -> None:
         state = load_state()
         log_daily_risk_snapshot(state)
         poll_injury_watchers()
-        entries = build_auto_nba_watchlist(client) if AUTO_NBA_PREGAME else WATCHLIST
+        if AUTO_NHL_PREGAME:
+            entries = build_auto_nhl_watchlist(client)
+        elif AUTO_NBA_PREGAME:
+            entries = build_auto_nba_watchlist(client)
+        else:
+            entries = WATCHLIST
         log.info(f"Active candidate set: {len(entries)} entries")
 
         for entry in entries:

@@ -7,12 +7,14 @@ See what the market misses, then move fast.
 The bot can now run in either:
 
 - manual watchlist mode
+- automatic pregame NHL scanning mode
 - automatic pregame NBA scanning mode
 
 Build sequence:
 
-1. NBA regular season + playoffs, pregame only
-2. NHL pregame only after the NBA flow is reliable
+1. NHL pregame only
+2. NBA regular season + playoffs, pregame only
+3. MLB and third-wave data after the core leagues are stable
 
 ## What's new in v3
 
@@ -91,6 +93,22 @@ WatchEntry(
 
 For Vegas odds, you can either provide a stable `event_id` from The Odds API or match by `home_team` and `away_team`.
 
+### NHL auto mode
+
+If you want the bot to choose its own pregame NHL candidates:
+
+- set `AUTO_NHL_PREGAME=true`
+- provide `ODDS_API_KEY`
+- leave `AUTO_NBA_PREGAME=false` while we focus on NHL
+
+In this mode the bot will:
+
+1. Pull NHL moneyline consensus from sportsbooks.
+2. Query Kalshi's live NHL game series.
+3. Match Kalshi events and markets to the sportsbook slate.
+4. Rank candidates by implied edge.
+5. Trade only the best few that still pass spread, volume, and risk gates.
+
 ### NBA auto mode
 
 If you want the bot to choose its own pregame NBA candidates:
@@ -119,8 +137,8 @@ The bot now includes two news-diff watchers:
 
 Why both:
 
-- NBA has a clearer official reporting cadence, so it is phase-one trading signal territory.
-- NHL has strong lineup/injury importance too, but public disclosure is more article/status-flow driven than the NBA's timed report format.
+- NHL has live Kalshi game events available right now, so it is the fastest route to a working league module.
+- NBA has a clearer official reporting cadence, so it remains a strong second league once market discovery is reliable.
 
 Current use:
 
@@ -135,14 +153,18 @@ This gives us the foundation for faster league-specific triggers without pretend
 This repo is intentionally being built in phases.
 
 Phase 1:
+- NHL pregame games
+- same core risk engine
+- sportsbook confirmation plus status-report watcher support
+
+Phase 2:
 - NBA regular season and playoff games
 - pregame only
 - official injury/news timing plus sportsbook confirmation
 
-Phase 2:
-- NHL pregame games
-- same core risk engine
-- hockey-specific signal logic layered on later
+Phase 3:
+- MLB if it gives more steady action than NBA at a given time
+- third-wave data like fantasy/news feeds once the core engine is trustworthy
 
 We are not trying to trade every sport or category at once. That is a feature, not a limitation.
 
@@ -171,6 +193,7 @@ python kalshi_bot.py
 | `MIN_VOLUME` | 500 | Avoid thinner markets |
 | `MAX_SOURCE_DISAGREEMENT_CENTS` | 20 | Skip markets where sources conflict too much |
 | `MAX_ACTIVE_POSITIONS` | 3 | Cap simultaneous exposure |
+| `AUTO_NHL_PREGAME` | false | Enable automatic pregame NHL scanning |
 | `AUTO_NBA_PREGAME` | false | Enable automatic pregame NBA scanning |
 | `NBA_LOOKAHEAD_HOURS` | 24 | Only consider markets closing within this many hours |
 | `MAX_AUTO_CANDIDATES` | 5 | How many NBA candidates to keep per scan |
@@ -201,4 +224,5 @@ python kalshi_bot.py
 - If no external source can be fetched for a market, the bot skips the trade.
 - The bot is intentionally built to keep managing existing positions even when new entries are disabled by a risk cap or kill switch.
 - The NBA auto scanner is intentionally constrained to pregame NBA-style mappings because that is safer than letting the bot choose from every market category.
+- The NHL auto scanner is the current first working league path because Kalshi is already exposing NHL game events.
 - Kalshi sports discovery now prefers sports series and event metadata rather than sweeping generic open markets.
