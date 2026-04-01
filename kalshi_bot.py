@@ -276,6 +276,19 @@ class MLBOpportunityContext:
     favored_team: Optional[str]
 
 
+@dataclass
+class MLBStarterChange:
+    away_team: str
+    home_team: str
+    away_before: Optional[str]
+    away_after: Optional[str]
+    home_before: Optional[str]
+    home_after: Optional[str]
+    summary: str
+    severity_score: float
+    change_type: str
+
+
 # -- Watchlist -----------------------------------------------------------------
 # Replace these examples with real Kalshi tickers and source mappings.
 WATCHLIST: list[WatchEntry] = [
@@ -575,25 +588,129 @@ def build_mlb_opportunity_contexts() -> list[MLBOpportunityContext]:
     return contexts
 
 
-def find_mlb_context_for_diff_line(diff_line: str, contexts: list[MLBOpportunityContext]) -> Optional[MLBOpportunityContext]:
-    normalized = normalize_text(diff_line)
+def extract_pitcher_name(diff_line: str, label: str) -> Optional[str]:
+    match = re.search(rf"{label}\s*:\s*([^|]+)", diff_line, flags=re.IGNORECASE)
+    if not match:
+        return None
+    value = re.sub(r"\s+", " ", match.group(1)).strip()
+    return value or None
+
+
+def pitcher_slot_delta(before: Optional[str], after: Optional[str]) -> tuple[float, str]:
+    old = normalize_text(before or "")
+    new = normalize_text(after or "")
+    if not old and not new:
+        return 0.0, "unchanged"
+    if old == new:
+        return 0.0, "unchanged"
+    if old in {"tbd", "none", ""} and new not in {"tbd", "none", ""}:
+        return 4.0, "confirmed"
+    if new in {"tbd", "none", ""} and old not in {"tbd", "none", ""}:
+        return 3.0, "scratched"
+    return 6.0, "swap"
+
+
+def score_mlb_starter_change(change: MLBStarterChange, context: Optional[MLBOpportunityContext]) -> float:
+    score = change.severity_score
+    if context:
+        score += min(context.score, 25.0) * 0.6
+        score += min(len(context.tracked_markets), 4) * 1.25
+        score += context.quoted_market_count * 4.0
+    return score
+
+
+def parse_mlb_starter_changes(added_lines: list[str], removed_lines: list[str]) -> list[MLBStarterChange]:
+    keyed_added: dict[tuple[str, str], str] = {}
+    keyed_removed: dict[tuple[str, str], str] = {}
+
+    def line_key(line: str) -> Optional[tuple[str, str]]:
+        match = re.match(r"(.+?) at (.+?) \|", line)
+        if not match:
+            return None
+        away_team = re.sub(r"\s+", " ", match.group(1)).strip()
+        home_team = re.sub(r"\s+", " ", match.group(2)).strip()
+        return away_team, home_team
+
+    for line in added_lines:
+        key = line_key(line)
+        if key:
+            keyed_added[key] = line
+    for line in removed_lines:
+        key = line_key(line)
+        if key:
+            keyed_removed[key] = line
+
+    changes: list[MLBStarterChange] = []
+    for key in sorted(set(keyed_added) | set(keyed_removed)):
+        away_team, home_team = key
+        added_line = keyed_added.get(key)
+        removed_line = keyed_removed.get(key)
+        away_before = extract_pitcher_name(removed_line or "", "away SP")
+        away_after = extract_pitcher_name(added_line or "", "away SP")
+        home_before = extract_pitcher_name(removed_line or "", "home SP")
+        home_after = extract_pitcher_name(added_line or "", "home SP")
+
+        away_delta, away_type = pitcher_slot_delta(away_before, away_after)
+        home_delta, home_type = pitcher_slot_delta(home_before, home_after)
+        severity_score = away_delta + home_delta
+
+        if away_type == "swap" or home_type == "swap":
+            change_type = "starter_swap"
+        elif away_type == "confirmed" or home_type == "confirmed":
+            change_type = "starter_confirmed"
+        elif away_type == "scratched" or home_type == "scratched":
+            change_type = "starter_scratched"
+        elif added_line and not removed_line:
+            change_type = "new_snapshot"
+        elif removed_line and not added_line:
+            change_type = "removed_snapshot"
+        else:
+            change_type = "status_shift"
+
+        parts: list[str] = []
+        if away_before != away_after:
+            parts.append(f"away {away_before or 'TBD'} -> {away_after or 'TBD'}")
+        if home_before != home_after:
+            parts.append(f"home {home_before or 'TBD'} -> {home_after or 'TBD'}")
+        summary = "; ".join(parts) or "no starter delta parsed"
+
+        changes.append(
+            MLBStarterChange(
+                away_team=away_team,
+                home_team=home_team,
+                away_before=away_before,
+                away_after=away_after,
+                home_before=home_before,
+                home_after=home_after,
+                summary=summary,
+                severity_score=severity_score,
+                change_type=change_type,
+            )
+        )
+
+    changes.sort(key=lambda item: item.severity_score, reverse=True)
+    return changes
+
+
+def find_mlb_context_for_change(change: MLBStarterChange, contexts: list[MLBOpportunityContext]) -> Optional[MLBOpportunityContext]:
+    away_key = canonical_team_name(change.away_team)
+    home_key = canonical_team_name(change.home_team)
     for context in contexts:
-        game = context.game
-        if canonical_team_name(game.home_team) in normalized and canonical_team_name(game.away_team) in normalized:
+        if canonical_team_name(context.game.away_team) == away_key and canonical_team_name(context.game.home_team) == home_key:
             return context
     return None
 
 
-def log_mlb_trigger_candidates(diff_lines: list[str], contexts: list[MLBOpportunityContext], heading: str) -> None:
-    if not diff_lines:
+def log_mlb_trigger_candidates(changes: list[MLBStarterChange], contexts: list[MLBOpportunityContext], heading: str) -> None:
+    if not changes:
         return
 
     ledger = load_mlb_trigger_ledger()
     trigger_rows = ledger.setdefault("triggers", [])
     seen_keys: set[str] = set()
     printed = 0
-    for line in diff_lines:
-        context = find_mlb_context_for_diff_line(line, contexts)
+    for change in changes:
+        context = find_mlb_context_for_change(change, contexts)
         if not context:
             continue
 
@@ -604,12 +721,16 @@ def log_mlb_trigger_candidates(diff_lines: list[str], contexts: list[MLBOpportun
 
         favorite = context.favored_team or "n/a"
         tracked = len(context.tracked_markets)
+        trigger_score = score_mlb_starter_change(change, context)
         print_line = (
             f"{context.game.away_team} at {context.game.home_team} | "
-            f"score={context.score:.2f} | starter_gap={context.starter_gap:.2f} | "
-            f"favorite={favorite} | tracked={tracked} | quoted={context.quoted_market_count}"
+            f"trigger_score={trigger_score:.2f} | severity={change.severity_score:.2f} | "
+            f"opportunity={context.score:.2f} | starter_gap={context.starter_gap:.2f} | "
+            f"favorite={favorite} | tracked={tracked} | quoted={context.quoted_market_count} | "
+            f"type={change.change_type}"
         )
         log.info(f"  {heading}: {print_line}")
+        log.info(f"    starter change: {change.summary}")
 
         if context.game.away_starter and context.game.home_starter:
             log.info(
@@ -627,16 +748,23 @@ def log_mlb_trigger_candidates(diff_lines: list[str], contexts: list[MLBOpportun
             {
                 "observed_at": int(time.time()),
                 "heading": heading,
-                "diff_line": line,
+                "diff_line": change.summary,
                 "event_id": context.game.event_id,
                 "away_team": context.game.away_team,
                 "home_team": context.game.home_team,
                 "commence_ts": context.game.commence_ts,
                 "score": round(context.score, 4),
+                "trigger_score": round(trigger_score, 4),
+                "severity_score": round(change.severity_score, 4),
+                "change_type": change.change_type,
                 "starter_gap": round(context.starter_gap, 4),
                 "favored_team": context.favored_team,
                 "tracked_markets": len(context.tracked_markets),
                 "quoted_market_count": context.quoted_market_count,
+                "away_before": change.away_before,
+                "away_after": change.away_after,
+                "home_before": change.home_before,
+                "home_after": change.home_after,
                 "away_starter": context.game.away_starter.pitcher_name if context.game.away_starter else None,
                 "home_starter": context.game.home_starter.pitcher_name if context.game.home_starter else None,
             }
@@ -857,6 +985,8 @@ def print_mlb_trigger_ledger_report(limit: int = 20) -> None:
 
     print(f"unique games triggered: {len(by_game)}")
     correlated = 0
+    trigger_scores = [float(trigger.get("trigger_score", trigger.get("score", 0.0)) or 0.0) for trigger in triggers]
+    severity_scores = [float(trigger.get("severity_score", 0.0) or 0.0) for trigger in triggers]
     for trigger in triggers:
         trigger_ts = int(trigger.get("observed_at", 0))
         home_key = canonical_team_name(str(trigger.get("home_team", "")))
@@ -870,6 +1000,17 @@ def print_mlb_trigger_ledger_report(limit: int = 20) -> None:
         if any(row.get("first_quoted_at") and int(row["first_quoted_at"]) >= trigger_ts for row in related_rows):
             correlated += 1
     print(f"triggers with later quote evidence: {correlated}")
+    if trigger_scores:
+        print(f"median trigger score: {statistics.median(trigger_scores):.2f}")
+    if severity_scores:
+        print(f"median severity score: {statistics.median(severity_scores):.2f}")
+
+    change_types: dict[str, int] = {}
+    for trigger in triggers:
+        change_types[str(trigger.get("change_type", "unknown"))] = change_types.get(str(trigger.get("change_type", "unknown")), 0) + 1
+    if change_types:
+        summary = ", ".join(f"{name}={count}" for name, count in sorted(change_types.items(), key=lambda item: item[1], reverse=True))
+        print(f"change types: {summary}")
 
     sorted_recent = sorted(triggers, key=lambda row: int(row.get("observed_at", 0)), reverse=True)
     print("\nRecent triggers:")
@@ -892,20 +1033,26 @@ def print_mlb_trigger_ledger_report(limit: int = 20) -> None:
         print(
             " - "
             f"{format_timestamp(row.get('observed_at'))} | {row.get('away_team')} at {row.get('home_team')} | "
-            f"score={row.get('score'):.2f} | gap={row.get('starter_gap'):.2f} | "
+            f"trigger={float(row.get('trigger_score', row.get('score', 0.0))):.2f} | "
+            f"severity={float(row.get('severity_score', 0.0)):.2f} | "
+            f"gap={float(row.get('starter_gap', 0.0)):.2f} | "
             f"favorite={row.get('favored_team') or 'n/a'} | tracked={row.get('tracked_markets')} | "
-            f"quoted={row.get('quoted_market_count')} | heading={row.get('heading')} | "
+            f"quoted={row.get('quoted_market_count')} | type={row.get('change_type') or 'n/a'} | "
+            f"heading={row.get('heading')} | "
             f"quote_after_trigger={format_timestamp(first_quote_after)}"
         )
+        if row.get("diff_line"):
+            print(f"    {row.get('diff_line')}")
 
     print("\nMost repeated games:")
     repeated = sorted(by_game.values(), key=len, reverse=True)
     for rows in repeated[: min(5, len(repeated))]:
-        first = rows[0]
+        rows_sorted = sorted(rows, key=lambda item: float(item.get("trigger_score", item.get("score", 0.0)) or 0.0), reverse=True)
+        first = rows_sorted[0]
         print(
             " - "
             f"{first.get('away_team')} at {first.get('home_team')} | triggers={len(rows)} | "
-            f"latest_score={first.get('score'):.2f}"
+            f"top_trigger={float(first.get('trigger_score', first.get('score', 0.0))):.2f}"
         )
 
 
@@ -2317,8 +2464,16 @@ def poll_injury_watchers() -> None:
                 if mlb_diff.removed:
                     log.info(f"  Removed: {summarize_diff_lines(mlb_diff.removed)}")
                 contexts = build_mlb_opportunity_contexts()
-                log_mlb_trigger_candidates(mlb_diff.added, contexts, heading="starter trigger candidate")
-                log_mlb_trigger_candidates(mlb_diff.removed, contexts, heading="starter removal context")
+                changes = parse_mlb_starter_changes(mlb_diff.added, mlb_diff.removed)
+                if changes:
+                    top_change = changes[0]
+                    log.info(
+                        "  Parsed MLB starter changes: %s (top severity %.2f, type=%s)",
+                        len(changes),
+                        top_change.severity_score,
+                        top_change.change_type,
+                    )
+                log_mlb_trigger_candidates(changes, contexts, heading="starter trigger candidate")
         except Exception as exc:
             log.warning(f"MLB starter watcher failed: {exc}")
 

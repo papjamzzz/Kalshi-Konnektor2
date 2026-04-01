@@ -218,6 +218,8 @@ To inspect recorded MLB starter-change triggers:
 python kalshi_bot.py --mlb-trigger-report
 ```
 
+This report now highlights trigger severity, starter-change type, and whether a later Kalshi quote appeared after the trigger fired.
+
 ### 4. Deploy to Railway
 
 1. Push all files to a private GitHub repo.
