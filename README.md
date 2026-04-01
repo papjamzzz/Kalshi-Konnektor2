@@ -186,6 +186,20 @@ pip install -r requirements.txt
 python kalshi_bot.py
 ```
 
+### Quote timing report
+
+To summarize what the quote monitor has learned so far:
+
+```bash
+python kalshi_bot.py --quote-report
+```
+
+You can show more examples per league with:
+
+```bash
+python kalshi_bot.py --quote-report --quote-report-limit 10
+```
+
 ### 4. Deploy to Railway
 
 1. Push all files to a private GitHub repo.

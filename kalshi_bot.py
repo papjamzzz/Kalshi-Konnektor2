@@ -21,10 +21,12 @@ Build direction:
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import os
 import re
+import statistics
 import time
 from datetime import datetime, timezone
 from dataclasses import asdict, dataclass
@@ -422,6 +424,91 @@ def load_quote_window_monitor() -> dict[str, Any]:
 def save_quote_window_monitor(monitor: dict[str, Any]) -> None:
     monitor.setdefault("markets", {})
     save_json_file(QUOTE_WINDOW_MONITOR_FILE, monitor)
+
+
+def format_timestamp(ts: Optional[int]) -> str:
+    if ts is None:
+        return "n/a"
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
+def format_minutes(value: Optional[int]) -> str:
+    if value is None:
+        return "n/a"
+    hours = value / 60.0
+    return f"{value}m ({hours:.1f}h)"
+
+
+def print_quote_window_report(limit: int = 5) -> None:
+    monitor = load_quote_window_monitor()
+    markets = monitor.get("markets", {})
+    if not markets:
+        print("Quote window monitor is empty. Run a league scan first.")
+        return
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for payload in markets.values():
+        league = str(payload.get("league", "unknown")).upper()
+        grouped.setdefault(league, []).append(payload)
+
+    print("Quote Window Report")
+    print("=" * 60)
+    for league in sorted(grouped):
+        rows = grouped[league]
+        quoted = [row for row in rows if row.get("first_quoted_at")]
+        in_window = [row for row in rows if row.get("last_in_window")]
+        seen_counts = [int(row.get("seen_count", 0)) for row in rows]
+        close_timestamps = [int(row["last_close_ts"]) for row in rows if row.get("last_close_ts") is not None]
+        minutes_to_quote = [
+            int(row["minutes_until_close_when_first_quoted"])
+            for row in quoted
+            if row.get("minutes_until_close_when_first_quoted") is not None
+        ]
+
+        print(f"\n{league}")
+        print(f"  tracked markets: {len(rows)}")
+        print(f"  first-quoted markets: {len(quoted)}")
+        print(f"  currently in-window: {len(in_window)}")
+        print(f"  quote hit rate: {(len(quoted) / len(rows) * 100):.1f}%" if rows else "  quote hit rate: 0.0%")
+        print(f"  in-window rate: {(len(in_window) / len(rows) * 100):.1f}%" if rows else "  in-window rate: 0.0%")
+        print(f"  avg observations per market: {statistics.mean(seen_counts):.1f}" if seen_counts else "  avg observations per market: 0.0")
+        if close_timestamps:
+            print(
+                "  close timing range: "
+                f"earliest {format_timestamp(min(close_timestamps))}, latest {format_timestamp(max(close_timestamps))}"
+            )
+        else:
+            print("  close timing range: no close timestamps recorded yet")
+        if minutes_to_quote:
+            print(
+                "  first quote timing: median "
+                f"{format_minutes(int(statistics.median(minutes_to_quote)))}"
+                f", earliest {format_minutes(min(minutes_to_quote))}, latest {format_minutes(max(minutes_to_quote))}"
+            )
+        else:
+            print("  first quote timing: no quoted markets recorded yet")
+
+        print("  recent examples:")
+        rows_sorted = sorted(rows, key=lambda row: int(row.get("last_seen_at", 0)), reverse=True)
+        for row in rows_sorted[:limit]:
+            print(
+                "   - "
+                f"{row.get('ticker')} | {row.get('event_title')} | "
+                f"seen {int(row.get('seen_count', 0))}x | "
+                f"quoted={row.get('quoted_count', 0)} | "
+                f"in_window={row.get('last_in_window')} | "
+                f"close={format_timestamp(row.get('last_close_ts'))}"
+            )
+
+        if quoted:
+            print("  quoted examples:")
+            quoted_sorted = sorted(quoted, key=lambda row: int(row.get("first_quoted_at", 0)))
+            for row in quoted_sorted[:limit]:
+                print(
+                    "   - "
+                    f"{row.get('ticker')} | first quoted {format_timestamp(row.get('first_quoted_at'))} | "
+                    f"{format_minutes(row.get('minutes_until_close_when_first_quoted'))} before close"
+                )
 
 
 def get_open_position(state: dict[str, Any], ticker: str) -> Optional[Position]:
@@ -1920,6 +2007,24 @@ def run() -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Kalshi Konnektor")
+    parser.add_argument(
+        "--quote-report",
+        action="store_true",
+        help="Print a summary report from quote_window_monitor.json and exit.",
+    )
+    parser.add_argument(
+        "--quote-report-limit",
+        type=int,
+        default=5,
+        help="How many example rows per league to show in the quote report.",
+    )
+    args = parser.parse_args()
+
+    if args.quote_report:
+        print_quote_window_report(limit=max(1, args.quote_report_limit))
+        raise SystemExit(0)
+
     while True:
         try:
             run()
