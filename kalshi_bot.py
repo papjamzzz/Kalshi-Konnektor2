@@ -90,13 +90,16 @@ ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports"
 POLYMARKET_BASE_URL = "https://gamma-api.polymarket.com"
 NBA_SPORT_KEY = "basketball_nba"
 NHL_SPORT_KEY = "icehockey_nhl"
+MLB_SPORT_KEY = "baseball_mlb"
 NBA_KALSHI_SERIES = ("KXNBAGAMES", "KXMVENBASINGLEGAME")
 NHL_KALSHI_SERIES = ("KXNHLGAME",)
+MLB_KALSHI_SERIES: tuple[str, ...] = ()
 ENABLE_NBA_INJURY_WATCHER = os.environ.get("ENABLE_NBA_INJURY_WATCHER", "true").lower() == "true"
 ENABLE_NHL_INJURY_WATCHER = os.environ.get("ENABLE_NHL_INJURY_WATCHER", "true").lower() == "true"
 INJURY_WATCHER_STATE_FILE = Path(os.environ.get("INJURY_WATCHER_STATE_FILE", "injury_watcher_state.json"))
 NBA_SERIES_DISCOVERY_TERMS = ("nba", "pro basketball")
 NHL_SERIES_DISCOVERY_TERMS = ("nhl", "pro hockey")
+MLB_SERIES_DISCOVERY_TERMS = ("mlb", "baseball")
 INJURY_WATCHER_INTERVAL_SECONDS = int(os.environ.get("INJURY_WATCHER_INTERVAL_SECONDS", "900"))
 WATCHER_LAST_POLLED: dict[str, float] = {}
 
@@ -190,6 +193,16 @@ class Position:
     stop_loss: int
     take_profit: Optional[int]
     opened_at: int
+
+
+@dataclass
+class LeagueScanStats:
+    league: str
+    kalshi_events: int = 0
+    matched_events: int = 0
+    total_markets_seen: int = 0
+    quoted_markets: int = 0
+    candidate_markets: int = 0
 
 
 # -- Watchlist -----------------------------------------------------------------
@@ -743,6 +756,10 @@ def fetch_nhl_odds_events() -> list[OddsEvent]:
     return fetch_moneyline_events_for_sport(NHL_SPORT_KEY)
 
 
+def fetch_mlb_odds_events() -> list[OddsEvent]:
+    return fetch_moneyline_events_for_sport(MLB_SPORT_KEY)
+
+
 def get_markets_page(
     client,
     cursor: Optional[str] = None,
@@ -822,8 +839,15 @@ def fetch_events_for_series(client, series_tickers: tuple[str, ...]) -> list[Any
 
 
 def discover_series_tickers(client, league: str) -> tuple[str, ...]:
-    preferred = NBA_KALSHI_SERIES if league == "NBA" else NHL_KALSHI_SERIES
-    terms = NBA_SERIES_DISCOVERY_TERMS if league == "NBA" else NHL_SERIES_DISCOVERY_TERMS
+    if league == "NBA":
+        preferred = NBA_KALSHI_SERIES
+        terms = NBA_SERIES_DISCOVERY_TERMS
+    elif league == "NHL":
+        preferred = NHL_KALSHI_SERIES
+        terms = NHL_SERIES_DISCOVERY_TERMS
+    else:
+        preferred = MLB_KALSHI_SERIES
+        terms = MLB_SERIES_DISCOVERY_TERMS
 
     try:
         response = client["series_api"].get_series(status="open")
@@ -966,6 +990,17 @@ def choose_market_side(market: Any, event: OddsEvent) -> Optional[tuple[str, flo
     return None
 
 
+def market_has_liquidity(market: Any) -> bool:
+    quote_fields = [
+        getattr(market, "yes_ask", None),
+        getattr(market, "no_ask", None),
+        getattr(market, "yes_bid", None),
+        getattr(market, "no_bid", None),
+    ]
+    volume_24h = getattr(market, "volume_24h", None)
+    return any(value is not None for value in quote_fields) or (volume_24h not in (None, 0))
+
+
 def build_watch_entry_from_market(
     market: Any,
     event: OddsEvent,
@@ -1010,9 +1045,11 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
         log.info(f"  No {league} sportsbook events available for auto-scan.")
         return []
 
+    stats = LeagueScanStats(league=league)
     series_tickers = discover_series_tickers(client, league=league)
     log.info(f"  Kalshi {league} series search set: {', '.join(series_tickers) if series_tickers else 'none'}")
     kalshi_events = fetch_events_for_series(client, series_tickers=series_tickers)
+    stats.kalshi_events = len(kalshi_events)
     log.info(f"  Auto-scan pulled {len(kalshi_events)} Kalshi events for {league}.")
     candidates: list[tuple[float, WatchEntry]] = []
 
@@ -1021,19 +1058,28 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
         if not matched_event:
             continue
 
+        stats.matched_events += 1
         event = matched_event.event
         markets = list(getattr(kalshi_event, "markets", []) or [])
         for market in markets:
+            stats.total_markets_seen += 1
             if not market_closes_soon(market):
                 continue
 
-            side_choice = choose_market_side(market, event)
+            ticker = str(getattr(market, "ticker", "") or "")
+            full_market = get_market(client, ticker) if ticker else None
+            market_to_trade = full_market or market
+
+            if market_has_liquidity(market_to_trade):
+                stats.quoted_markets += 1
+
+            side_choice = choose_market_side(market_to_trade, event)
             if not side_choice:
                 continue
 
             side, probability = side_choice
             built = build_watch_entry_from_market(
-                market=market,
+                market=market_to_trade,
                 event=event,
                 side=side,
                 probability=probability,
@@ -1041,11 +1087,23 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
                 league=league,
             )
             if built:
+                stats.candidate_markets += 1
                 candidates.append(built)
 
     candidates.sort(key=lambda item: item[0], reverse=True)
+    log.info(
+        "  %s liquidity snapshot: matched_events=%s total_markets=%s quoted_markets=%s candidates=%s",
+        league,
+        stats.matched_events,
+        stats.total_markets_seen,
+        stats.quoted_markets,
+        stats.candidate_markets,
+    )
     if not candidates:
-        log.info(f"  No {league} Kalshi candidates matched the current sportsbook slate.")
+        if stats.matched_events > 0 and stats.quoted_markets == 0:
+            log.info(f"  {league} events matched the sportsbook slate, but none of the matched markets were quoted.")
+        else:
+            log.info(f"  No {league} Kalshi candidates matched the current sportsbook slate.")
     return [entry for _, entry in candidates[:MAX_AUTO_CANDIDATES]]
 
 

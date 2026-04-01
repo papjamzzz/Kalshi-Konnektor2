@@ -13,6 +13,16 @@
 - The `NHL` watcher is already returning usable status-report diffs.
 - That makes NHL the fastest path to a real dry-run candidate generator.
 
+## Liquidity rule
+
+A league is not truly live-tradable for this bot unless it has:
+
+- discoverable Kalshi events
+- quoted Kalshi markets or recent market volume
+- matching sportsbook odds
+
+Listed events without quotes are not enough.
+
 ## NBA plan after NHL
 
 - Improve official NBA injury-report ingestion and retries.
