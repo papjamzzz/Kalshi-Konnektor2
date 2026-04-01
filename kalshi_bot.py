@@ -563,6 +563,56 @@ def build_mlb_opportunity_contexts() -> list[MLBOpportunityContext]:
     return contexts
 
 
+def find_mlb_context_for_diff_line(diff_line: str, contexts: list[MLBOpportunityContext]) -> Optional[MLBOpportunityContext]:
+    normalized = normalize_text(diff_line)
+    for context in contexts:
+        game = context.game
+        if canonical_team_name(game.home_team) in normalized and canonical_team_name(game.away_team) in normalized:
+            return context
+    return None
+
+
+def log_mlb_trigger_candidates(diff_lines: list[str], contexts: list[MLBOpportunityContext], heading: str) -> None:
+    if not diff_lines:
+        return
+
+    seen_keys: set[str] = set()
+    printed = 0
+    for line in diff_lines:
+        context = find_mlb_context_for_diff_line(line, contexts)
+        if not context:
+            continue
+
+        key = context.game.event_id
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+
+        favorite = context.favored_team or "n/a"
+        tracked = len(context.tracked_markets)
+        print_line = (
+            f"{context.game.away_team} at {context.game.home_team} | "
+            f"score={context.score:.2f} | starter_gap={context.starter_gap:.2f} | "
+            f"favorite={favorite} | tracked={tracked} | quoted={context.quoted_market_count}"
+        )
+        log.info(f"  {heading}: {print_line}")
+
+        if context.game.away_starter and context.game.home_starter:
+            log.info(
+                "    starters: "
+                f"{context.game.away_starter.pitcher_name} vs {context.game.home_starter.pitcher_name}"
+            )
+        if context.odds_event:
+            log.info(
+                "    sportsbook: "
+                f"{context.odds_event.away_team} {context.odds_event.away_probability:.3f} | "
+                f"{context.odds_event.home_team} {context.odds_event.home_probability:.3f}"
+            )
+        printed += 1
+        if printed >= 3:
+            break
+
+
 def print_quote_window_report(limit: int = 5) -> None:
     monitor = load_quote_window_monitor()
     markets = monitor.get("markets", {})
@@ -2160,6 +2210,9 @@ def poll_injury_watchers() -> None:
                 log.info(f"  Added: {summarize_diff_lines(mlb_diff.added)}")
                 if mlb_diff.removed:
                     log.info(f"  Removed: {summarize_diff_lines(mlb_diff.removed)}")
+                contexts = build_mlb_opportunity_contexts()
+                log_mlb_trigger_candidates(mlb_diff.added, contexts, heading="starter trigger candidate")
+                log_mlb_trigger_candidates(mlb_diff.removed, contexts, heading="starter removal context")
         except Exception as exc:
             log.warning(f"MLB starter watcher failed: {exc}")
 
