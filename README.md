@@ -9,6 +9,7 @@ The bot can now run in either:
 - manual watchlist mode
 - automatic pregame NHL scanning mode
 - automatic pregame NBA scanning mode
+- automatic pregame MLB scanning mode
 
 Build sequence:
 
@@ -25,6 +26,7 @@ Build sequence:
 | Exit logic | Take-profit + stop-loss | Take-profit + stop-loss + fair-value exit |
 | State handling | In-memory only | Persistent `bot_state.json` |
 | Injury/news watch | None | NBA official report watcher + NHL status watcher |
+| Odds failover | None | Cached sportsbook snapshot fallback |
 
 ## How the edge model works
 
@@ -55,6 +57,12 @@ Fill in:
 - `KALSHI_API_KEY_ID`
 - `KALSHI_PRIVATE_KEY`
 - `ODDS_API_KEY` if you want Vegas sportsbook input
+
+Odds failover:
+
+- successful sportsbook fetches are cached to `odds_cache.json`
+- if The Odds API errors out, the bot falls back to the latest cached league snapshot
+- `ODDS_CACHE_MAX_AGE_MINUTES` controls when cached data is marked stale in logs
 
 ### 2. Edit `WATCHLIST` in `kalshi_bot.py`
 
@@ -198,6 +206,9 @@ python kalshi_bot.py
 | `AUTO_NBA_PREGAME` | false | Enable automatic pregame NBA scanning |
 | `AUTO_MLB_PREGAME` | false | Enable automatic pregame MLB scanning |
 | `AUTO_LOOKAHEAD_HOURS` | 24 | Only consider auto-selected league markets closing within this many hours |
+| `ODDS_CACHE_FILE` | odds_cache.json | Local sportsbook snapshot cache used for provider failover |
+| `ODDS_CACHE_MAX_AGE_MINUTES` | 720 | Mark cached sportsbook data stale after this many minutes |
+| `ODDS_CACHE_WRITE_ON_SUCCESS` | true | Save fresh sportsbook snapshots after successful live pulls |
 | `MAX_AUTO_CANDIDATES` | 5 | How many NBA candidates to keep per scan |
 | `AUTO_CONTRACTS` | 2 | Default size per automatically selected trade |
 | `AUTO_MAX_PRICE_CENTS` | 70 | Avoid paying too much for auto-selected contracts |
@@ -220,6 +231,7 @@ python kalshi_bot.py
 
 - `bot_state.json` stores open-position state between restarts.
 - `injury_watcher_state.json` stores the last NBA and NHL watcher snapshots.
+- `odds_cache.json` stores the last successful sportsbook snapshot for each auto-scanned league.
 - Daily trade count and realized PnL are also stored in `bot_state.json`, so safety limits survive restarts.
 - Polymarket is queried through the public Gamma API.
 - Vegas odds are pulled through The Odds API and de-vigged at the bookmaker level before averaging.

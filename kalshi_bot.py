@@ -89,6 +89,9 @@ DEFAULT_MANUAL_WEIGHT = float(os.environ.get("DEFAULT_MANUAL_WEIGHT", "0.10"))
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY")
 ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports"
 POLYMARKET_BASE_URL = "https://gamma-api.polymarket.com"
+ODDS_CACHE_FILE = Path(os.environ.get("ODDS_CACHE_FILE", "odds_cache.json"))
+ODDS_CACHE_MAX_AGE_MINUTES = int(os.environ.get("ODDS_CACHE_MAX_AGE_MINUTES", "720"))
+ODDS_CACHE_WRITE_ON_SUCCESS = os.environ.get("ODDS_CACHE_WRITE_ON_SUCCESS", "true").lower() == "true"
 NBA_SPORT_KEY = "basketball_nba"
 NHL_SPORT_KEY = "icehockey_nhl"
 MLB_SPORT_KEY = "baseball_mlb"
@@ -221,6 +224,14 @@ class LeagueScanStats:
     off_window_markets: int = 0
     quoted_markets: int = 0
     candidate_markets: int = 0
+
+
+@dataclass
+class OddsFetchResult:
+    events: list[OddsEvent]
+    source: str
+    fetched_at: Optional[int] = None
+    stale: bool = False
 
 
 # -- Watchlist -----------------------------------------------------------------
@@ -372,6 +383,26 @@ def save_state(state: dict[str, Any]) -> None:
             json.dump(state, handle, indent=2, sort_keys=True)
     except Exception as exc:
         log.error(f"Could not save state file {STATE_FILE}: {exc}")
+
+
+def load_json_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        return payload if isinstance(payload, dict) else {}
+    except Exception as exc:
+        log.warning(f"Could not load JSON file {path}: {exc}")
+        return {}
+
+
+def save_json_file(path: Path, payload: dict[str, Any]) -> None:
+    try:
+        with path.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True)
+    except Exception as exc:
+        log.warning(f"Could not save JSON file {path}: {exc}")
 
 
 def get_open_position(state: dict[str, Any], ticker: str) -> Optional[Position]:
@@ -792,27 +823,74 @@ def fetch_manual_signal(source: ManualSource) -> Optional[SourceSignal]:
     )
 
 
-def fetch_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
-    if not ODDS_API_KEY:
-        log.warning(f"  Auto-scan for {sport_key} is enabled but ODDS_API_KEY is missing.")
-        return []
+def odds_event_to_dict(event: OddsEvent) -> dict[str, Any]:
+    return {
+        "event_id": event.event_id,
+        "commence_ts": event.commence_ts,
+        "home_team": event.home_team,
+        "away_team": event.away_team,
+        "home_probability": event.home_probability,
+        "away_probability": event.away_probability,
+        "sport_key": event.sport_key,
+    }
 
+
+def odds_event_from_dict(payload: dict[str, Any]) -> Optional[OddsEvent]:
     try:
-        events = get_json(
-            f"{ODDS_API_BASE_URL}/{sport_key}/odds",
-            params={
-                "apiKey": ODDS_API_KEY,
-                "regions": "us",
-                "markets": "h2h",
-                "oddsFormat": "american",
-            },
+        return OddsEvent(
+            event_id=str(payload["event_id"]),
+            commence_ts=int(payload["commence_ts"]),
+            home_team=str(payload["home_team"]),
+            away_team=str(payload["away_team"]),
+            home_probability=float(payload["home_probability"]),
+            away_probability=float(payload["away_probability"]),
+            sport_key=str(payload["sport_key"]),
         )
-    except Exception as exc:
-        log.warning(f"  Could not fetch NBA odds events: {exc}")
-        return []
+    except Exception:
+        return None
 
+
+def load_cached_odds_events(sport_key: str) -> OddsFetchResult:
+    cache = load_json_file(ODDS_CACHE_FILE)
+    entry = cache.get(sport_key)
+    if not isinstance(entry, dict):
+        return OddsFetchResult(events=[], source="cache")
+
+    fetched_at = to_unix_timestamp(entry.get("fetched_at"))
+    event_payloads = entry.get("events", [])
+    if not isinstance(event_payloads, list):
+        return OddsFetchResult(events=[], source="cache", fetched_at=fetched_at)
+
+    events = [event for item in event_payloads if isinstance(item, dict) for event in [odds_event_from_dict(item)] if event]
+    if not events:
+        return OddsFetchResult(events=[], source="cache", fetched_at=fetched_at)
+
+    age_seconds = None if fetched_at is None else max(0, int(time.time()) - fetched_at)
+    max_age_seconds = ODDS_CACHE_MAX_AGE_MINUTES * 60
+    is_stale = age_seconds is None or age_seconds > max_age_seconds
+    if is_stale:
+        log.warning(
+            f"  Cached odds for {sport_key} are stale"
+            + (f" ({age_seconds // 60}m old)." if age_seconds is not None else ".")
+        )
+    else:
+        log.info(f"  Using cached odds snapshot for {sport_key} ({age_seconds // 60}m old).")
+
+    return OddsFetchResult(events=events, source="cache", fetched_at=fetched_at, stale=is_stale)
+
+
+def save_cached_odds_events(sport_key: str, events: list[OddsEvent]) -> None:
+    cache = load_json_file(ODDS_CACHE_FILE)
+    cache[sport_key] = {
+        "fetched_at": int(time.time()),
+        "events": [odds_event_to_dict(event) for event in events],
+    }
+    save_json_file(ODDS_CACHE_FILE, cache)
+
+
+def normalize_moneyline_events(raw_events: list[dict[str, Any]], sport_key: str) -> list[OddsEvent]:
     results: list[OddsEvent] = []
-    for event in events:
+    for event in raw_events:
         home_team = str(event.get("home_team", "")).strip()
         away_team = str(event.get("away_team", "")).strip()
         event_id = str(event.get("id", "")).strip()
@@ -864,6 +942,40 @@ def fetch_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
         )
 
     return results
+
+
+def fetch_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
+    cached = load_cached_odds_events(sport_key)
+    if not ODDS_API_KEY:
+        log.warning(f"  Auto-scan for {sport_key} is enabled but ODDS_API_KEY is missing.")
+        return cached.events
+
+    try:
+        raw_events = get_json(
+            f"{ODDS_API_BASE_URL}/{sport_key}/odds",
+            params={
+                "apiKey": ODDS_API_KEY,
+                "regions": "us",
+                "markets": "h2h",
+                "oddsFormat": "american",
+            },
+        )
+        events = normalize_moneyline_events(raw_events, sport_key)
+        if events:
+            if ODDS_CACHE_WRITE_ON_SUCCESS:
+                save_cached_odds_events(sport_key, events)
+            log.info(f"  Loaded {len(events)} live odds events for {sport_key}.")
+            return events
+        log.warning(f"  Live odds fetch for {sport_key} returned no usable events.")
+    except Exception as exc:
+        log.warning(f"  Could not fetch {sport_key} odds events live: {exc}")
+
+    if cached.events:
+        stale_label = "stale cached" if cached.stale else "cached"
+        log.warning(f"  Falling back to {stale_label} odds snapshot for {sport_key} with {len(cached.events)} events.")
+        return cached.events
+
+    return []
 
 
 def fetch_nba_odds_events() -> list[OddsEvent]:
