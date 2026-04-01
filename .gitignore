@@ -5,3 +5,4 @@ __pycache__/
 bot_state.json
 injury_watcher_state.json
 odds_cache.json
+quote_window_monitor.json

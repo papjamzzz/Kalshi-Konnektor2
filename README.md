@@ -27,6 +27,7 @@ Build sequence:
 | State handling | In-memory only | Persistent `bot_state.json` |
 | Injury/news watch | None | NBA official report watcher + NHL status watcher |
 | Odds failover | None | Cached sportsbook snapshot fallback |
+| Quote timing | None | Persistent quote-window monitor for matched full-game markets |
 
 ## How the edge model works
 
@@ -211,6 +212,8 @@ python kalshi_bot.py
 | `ODDS_CACHE_MAX_AGE_MINUTES` | 720 | Mark cached sportsbook data stale after this many minutes |
 | `ODDS_CACHE_WRITE_ON_SUCCESS` | true | Save fresh sportsbook snapshots after successful live pulls |
 | `ENABLE_ESPN_ODDS_FALLBACK` | true | Use ESPN scoreboard odds as a second live provider before falling back to cache |
+| `ENABLE_QUOTE_WINDOW_MONITOR` | true | Track when matched full-game Kalshi markets first become quoted |
+| `QUOTE_WINDOW_MONITOR_FILE` | quote_window_monitor.json | Persistent log of matched market quote timing |
 | `MAX_AUTO_CANDIDATES` | 5 | How many NBA candidates to keep per scan |
 | `AUTO_CONTRACTS` | 2 | Default size per automatically selected trade |
 | `AUTO_MAX_PRICE_CENTS` | 70 | Avoid paying too much for auto-selected contracts |
@@ -234,6 +237,7 @@ python kalshi_bot.py
 - `bot_state.json` stores open-position state between restarts.
 - `injury_watcher_state.json` stores the last NBA and NHL watcher snapshots.
 - `odds_cache.json` stores the last successful sportsbook snapshot for each auto-scanned league.
+- `quote_window_monitor.json` stores when matched full-game markets were first seen and first quoted.
 - The live sportsbook chain is now: The Odds API -> ESPN scoreboard odds -> cached snapshot.
 - Daily trade count and realized PnL are also stored in `bot_state.json`, so safety limits survive restarts.
 - Polymarket is queried through the public Gamma API.

@@ -93,6 +93,8 @@ ODDS_CACHE_FILE = Path(os.environ.get("ODDS_CACHE_FILE", "odds_cache.json"))
 ODDS_CACHE_MAX_AGE_MINUTES = int(os.environ.get("ODDS_CACHE_MAX_AGE_MINUTES", "720"))
 ODDS_CACHE_WRITE_ON_SUCCESS = os.environ.get("ODDS_CACHE_WRITE_ON_SUCCESS", "true").lower() == "true"
 ENABLE_ESPN_ODDS_FALLBACK = os.environ.get("ENABLE_ESPN_ODDS_FALLBACK", "true").lower() == "true"
+QUOTE_WINDOW_MONITOR_FILE = Path(os.environ.get("QUOTE_WINDOW_MONITOR_FILE", "quote_window_monitor.json"))
+ENABLE_QUOTE_WINDOW_MONITOR = os.environ.get("ENABLE_QUOTE_WINDOW_MONITOR", "true").lower() == "true"
 NBA_SPORT_KEY = "basketball_nba"
 NHL_SPORT_KEY = "icehockey_nhl"
 MLB_SPORT_KEY = "baseball_mlb"
@@ -411,6 +413,17 @@ def save_json_file(path: Path, payload: dict[str, Any]) -> None:
         log.warning(f"Could not save JSON file {path}: {exc}")
 
 
+def load_quote_window_monitor() -> dict[str, Any]:
+    monitor = load_json_file(QUOTE_WINDOW_MONITOR_FILE)
+    monitor.setdefault("markets", {})
+    return monitor
+
+
+def save_quote_window_monitor(monitor: dict[str, Any]) -> None:
+    monitor.setdefault("markets", {})
+    save_json_file(QUOTE_WINDOW_MONITOR_FILE, monitor)
+
+
 def get_open_position(state: dict[str, Any], ticker: str) -> Optional[Position]:
     payload = state.get("positions", {}).get(ticker)
     if not payload:
@@ -610,6 +623,9 @@ def parse_json_list(raw_value: Any) -> list[Any]:
 def to_unix_timestamp(value: Any) -> Optional[int]:
     if value is None:
         return None
+
+    if isinstance(value, datetime):
+        return int(value.timestamp())
 
     if isinstance(value, (int, float)):
         return int(value)
@@ -1207,7 +1223,7 @@ def discover_series_tickers(client, league: str) -> tuple[str, ...]:
 
 
 def market_closes_soon(market: Any) -> bool:
-    close_ts = to_unix_timestamp(getattr(market, "close_time", None) or getattr(market, "expiration_time", None))
+    close_ts = market_close_timestamp(market)
     if close_ts is None:
         return False
 
@@ -1335,6 +1351,85 @@ def market_has_liquidity(market: Any) -> bool:
     return any(value is not None for value in quote_fields) or (volume_24h not in (None, 0))
 
 
+def summarize_minutes_until_close(close_ts: Optional[int], observed_at: int) -> Optional[int]:
+    if close_ts is None:
+        return None
+    return int((close_ts - observed_at) / 60)
+
+
+def market_close_timestamp(market: Any, fallback_market: Any = None) -> Optional[int]:
+    close_ts = to_unix_timestamp(getattr(market, "close_time", None) or getattr(market, "expiration_time", None))
+    if close_ts is not None:
+        return close_ts
+    if fallback_market is not None:
+        return to_unix_timestamp(
+            getattr(fallback_market, "close_time", None) or getattr(fallback_market, "expiration_time", None)
+        )
+    return None
+
+
+def record_quote_window_observation(
+    monitor: dict[str, Any],
+    *,
+    league: str,
+    kalshi_event: Any,
+    market: Any,
+    fallback_market: Any,
+    event: OddsEvent,
+    confidence: float,
+    quoted: bool,
+    in_window: bool,
+) -> bool:
+    markets = monitor.setdefault("markets", {})
+    ticker = str(getattr(market, "ticker", "") or "").strip()
+    if not ticker:
+        return False
+
+    now_ts = int(time.time())
+    close_ts = market_close_timestamp(market, fallback_market=fallback_market)
+    record = markets.setdefault(
+        ticker,
+        {
+            "ticker": ticker,
+            "league": league,
+            "series_ticker": str(getattr(kalshi_event, "series_ticker", "") or ""),
+            "event_ticker": str(getattr(kalshi_event, "event_ticker", "") or ""),
+            "market_title": str(getattr(market, "title", "") or ""),
+            "event_title": str(getattr(kalshi_event, "title", "") or ""),
+            "odds_event_id": event.event_id,
+            "home_team": event.home_team,
+            "away_team": event.away_team,
+            "match_confidence": round(confidence, 4),
+            "first_seen_at": now_ts,
+            "seen_count": 0,
+            "quoted_count": 0,
+        },
+    )
+
+    record["last_seen_at"] = now_ts
+    record["seen_count"] = int(record.get("seen_count", 0)) + 1
+    record["last_close_ts"] = close_ts
+    record["last_in_window"] = in_window
+    record["last_quoted"] = quoted
+    record["last_yes_ask"] = getattr(market, "yes_ask", None)
+    record["last_no_ask"] = getattr(market, "no_ask", None)
+    record["last_yes_bid"] = getattr(market, "yes_bid", None)
+    record["last_no_bid"] = getattr(market, "no_bid", None)
+    record["last_volume_24h"] = getattr(market, "volume_24h", None)
+    if close_ts is not None and "first_close_ts" not in record:
+        record["first_close_ts"] = close_ts
+
+    newly_quoted = quoted and not record.get("first_quoted_at")
+    if quoted:
+        record["quoted_count"] = int(record.get("quoted_count", 0)) + 1
+        record["last_quoted_at"] = now_ts
+        if newly_quoted:
+            record["first_quoted_at"] = now_ts
+            record["minutes_until_close_when_first_quoted"] = summarize_minutes_until_close(close_ts, now_ts)
+
+    return newly_quoted
+
+
 def build_watch_entry_from_market(
     market: Any,
     event: OddsEvent,
@@ -1380,6 +1475,8 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
         return []
 
     stats = LeagueScanStats(league=league)
+    quote_monitor = load_quote_window_monitor() if ENABLE_QUOTE_WINDOW_MONITOR else {"markets": {}}
+    newly_quoted_markets: list[tuple[str, Optional[int], str]] = []
     series_tickers = discover_series_tickers(client, league=league)
     log.info(f"  Kalshi {league} series search set: {', '.join(series_tickers) if series_tickers else 'none'}")
     kalshi_events = fetch_events_for_series(client, series_tickers=series_tickers)
@@ -1407,15 +1504,43 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
             if not is_full_game_market(market, league, event_context=event_context):
                 stats.filtered_period_markets += 1
                 continue
-            if not market_closes_soon(market):
-                stats.off_window_markets += 1
-                continue
 
             ticker = str(getattr(market, "ticker", "") or "")
             full_market = get_market(client, ticker) if ticker else None
             market_to_trade = full_market or market
+            close_ts = market_close_timestamp(market_to_trade, fallback_market=market)
+            now_ts = int(time.time())
+            close_in_window = close_ts is not None and (
+                AUTO_MIN_TIME_TO_CLOSE_MINUTES * 60 <= (close_ts - now_ts) <= AUTO_LOOKAHEAD_HOURS * 3600
+            )
+            quoted = market_has_liquidity(market_to_trade)
 
-            if market_has_liquidity(market_to_trade):
+            if ENABLE_QUOTE_WINDOW_MONITOR:
+                just_quoted = record_quote_window_observation(
+                    quote_monitor,
+                    league=league,
+                    kalshi_event=kalshi_event,
+                    market=market_to_trade,
+                    fallback_market=market,
+                    event=event,
+                    confidence=matched_event.confidence,
+                    quoted=quoted,
+                    in_window=close_in_window,
+                )
+                if just_quoted:
+                    newly_quoted_markets.append(
+                        (
+                            str(getattr(market_to_trade, "ticker", "") or ""),
+                            summarize_minutes_until_close(close_ts, now_ts),
+                            str(getattr(kalshi_event, "title", "") or ""),
+                        )
+                    )
+
+            if not close_in_window:
+                stats.off_window_markets += 1
+                continue
+
+            if quoted:
                 stats.quoted_markets += 1
 
             side_choice = choose_market_side(market_to_trade, event)
@@ -1459,6 +1584,16 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
             log.info(f"  {league} events matched the sportsbook slate, but none of the matched markets were quoted.")
         else:
             log.info(f"  No {league} Kalshi candidates matched the current sportsbook slate.")
+    if ENABLE_QUOTE_WINDOW_MONITOR:
+        save_quote_window_monitor(quote_monitor)
+        if newly_quoted_markets:
+            for ticker, minutes_until_close, title in newly_quoted_markets[:5]:
+                if minutes_until_close is None:
+                    log.info(f"  {league} quote-window monitor: {ticker} first quoted for {title}.")
+                else:
+                    log.info(
+                        f"  {league} quote-window monitor: {ticker} first quoted about {minutes_until_close}m before close for {title}."
+                    )
     return [entry for _, entry in candidates[:MAX_AUTO_CANDIDATES]]
 
 
