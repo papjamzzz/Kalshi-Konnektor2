@@ -1,2 +1,6 @@
 kalshi-python
 python-dotenv
+requests
+cryptography
+beautifulsoup4
+pypdf

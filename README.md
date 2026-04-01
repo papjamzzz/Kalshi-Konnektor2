@@ -1,66 +1,203 @@
-# Kalshi Konnektor — v2
+# Kalshi Konnektor - v3
 
-Automated Kalshi trading bot with edge scoring, take-profit, and volume filtering.
+Automated Kalshi trading bot with a fair-value model built from external probability sources.
 
-## What's new in v2
+See what the market misses, then move fast.
 
-| Feature | v1 | v2 |
+The bot can now run in either:
+
+- manual watchlist mode
+- automatic pregame NBA scanning mode
+
+Build sequence:
+
+1. NBA regular season + playoffs, pregame only
+2. NHL pregame only after the NBA flow is reliable
+
+## What's new in v3
+
+| Feature | v2 | v3 |
 |---|---|---|
-| Entry signal | Price threshold only | Price + edge score |
-| Exit logic | Stop-loss only | Take-profit + stop-loss |
-| Market filter | None | Minimum volume check |
+| Entry signal | Internal heuristic score | Weighted fair probability from external sources |
+| Data sources | Kalshi prices only | Polymarket, Vegas odds, optional manual input |
+| Exit logic | Take-profit + stop-loss | Take-profit + stop-loss + fair-value exit |
+| State handling | In-memory only | Persistent `bot_state.json` |
+| Injury/news watch | None | NBA official report watcher + NHL status watcher |
 
-## How the edge score works
+## How the edge model works
 
-Before entering any position the bot computes a score from three factors:
+Each watchlist entry can define one or more source mappings:
 
-- **Spread width** — a wide bid/ask spread means the market is less efficiently priced, more edge available
-- **Volume** — markets below `MIN_VOLUME` are skipped entirely to avoid spread bleed on exit
-- **Midpoint distance** — prices near 0¢ or 100¢ extremes carry higher binary risk, scored down slightly
+- `polymarket`: public Polymarket market slug + outcome
+- `vegas`: sportsbook consensus through The Odds API
+- `manual`: your own estimate, mainly as a fallback or blend input
 
-Score must meet `MIN_EDGE_SCORE` (default 1.0) or the bot skips the trade. Raise to 1.5 to be more selective.
+The bot converts those into a weighted fair probability, then:
+
+1. Converts fair probability into a fair Kalshi price for the side you trade.
+2. Subtracts half the live spread as a simple liquidity penalty.
+3. Buys only if the adjusted edge is at least `MIN_EDGE_CENTS`.
+4. Skips markets where sources disagree too much or 24h volume is too low.
+
+This is much better than the previous placeholder score, but it is not a guarantee of profitability. Source mapping quality matters.
 
 ## Setup
 
 ### 1. Credentials
-```
+```bash
 cp .env.example .env
-# Fill in KALSHI_API_KEY_ID and KALSHI_PRIVATE_KEY
 ```
 
-### 2. Edit WATCHLIST in kalshi_bot.py
-Set `ticker`, `side`, `max_price`, `take_profit`, `stop_loss`, `contracts` for each market.
-Tickers are in the URL of any Kalshi market page.
+Fill in:
+
+- `KALSHI_API_KEY_ID`
+- `KALSHI_PRIVATE_KEY`
+- `ODDS_API_KEY` if you want Vegas sportsbook input
+
+### 2. Edit `WATCHLIST` in `kalshi_bot.py`
+
+Set the trading fields plus one or more source mappings for each market:
+
+- `ticker`, `side`, `max_price`, `take_profit`, `stop_loss`, `contracts`
+- `polymarket=PolymarketSource(...)` for Polymarket market odds
+- `vegas=VegasOddsSource(...)` for sportsbook consensus
+- `manual=ManualSource(...)` if you want a fallback or blend estimate
+
+The current watchlist includes placeholder manual values only. Replace those before live trading.
+
+Example:
+
+```python
+WatchEntry(
+    ticker="KXBTC-...",
+    side="yes",
+    max_price=47,
+    stop_loss=37,
+    take_profit=62,
+    contracts=10,
+    min_edge_cents=4,
+    polymarket=PolymarketSource(
+        slug="bitcoin-above-100k-by-december-31",
+        outcome="Yes",
+        weight=0.6,
+    ),
+    manual=ManualSource(
+        probability=0.54,
+        weight=0.4,
+        label="research-model",
+    ),
+)
+```
+
+For Vegas odds, you can either provide a stable `event_id` from The Odds API or match by `home_team` and `away_team`.
+
+### NBA auto mode
+
+If you want the bot to choose its own pregame NBA candidates:
+
+- set `AUTO_NBA_PREGAME=true`
+- provide `ODDS_API_KEY`
+- leave the watchlist alone unless you want a manual fallback mode
+
+In this mode the bot will:
+
+1. Pull NBA moneyline consensus from sportsbooks.
+2. Scan open Kalshi markets that are closing soon.
+3. Match markets to NBA games by team names.
+4. Rank candidates by implied edge.
+5. Trade only the best few that still pass spread, volume, and risk gates.
+
+Important: this is the right way to automate selection. Letting the bot pick from all of Kalshi is not.
+`MIN_AUTO_MATCH_CONFIDENCE` controls how strict the NBA market matcher is. A modest default is `0.6`.
+
+### Injury watchers
+
+The bot now includes two news-diff watchers:
+
+- `NBA Official Injury Report watcher`
+- `NHL Status Report watcher`
+
+Why both:
+
+- NBA has a clearer official reporting cadence, so it is phase-one trading signal territory.
+- NHL has strong lineup/injury importance too, but public disclosure is more article/status-flow driven than the NBA's timed report format.
+
+Current use:
+
+1. Watch official updates.
+2. Diff the new report/article against the prior snapshot.
+3. Log the changed lines so we can connect news timing to sportsbook and Kalshi moves.
+
+This gives us the foundation for faster league-specific triggers without pretending both leagues disclose news the same way.
+
+## Strategy sequencing
+
+This repo is intentionally being built in phases.
+
+Phase 1:
+- NBA regular season and playoff games
+- pregame only
+- official injury/news timing plus sportsbook confirmation
+
+Phase 2:
+- NHL pregame games
+- same core risk engine
+- hockey-specific signal logic layered on later
+
+We are not trying to trade every sport or category at once. That is a feature, not a limitation.
 
 ### 3. Run locally
-```
+
+```bash
 pip install -r requirements.txt
 python kalshi_bot.py
 ```
 
-### 4. Deploy to Railway (free, always on)
-1. Push all files to a **private** GitHub repo
-2. railway.app → New Project → Deploy from GitHub
-3. Variables tab — add:
-   - `KALSHI_API_KEY_ID`
-   - `KALSHI_PRIVATE_KEY` (full PEM contents)
-   - `DRY_RUN=true`
-   - `POLL_SECONDS=60`
-4. Deploy — check Logs tab
-5. When dry run looks good, set `DRY_RUN=false`
+### 4. Deploy to Railway
+
+1. Push all files to a private GitHub repo.
+2. In Railway, create a new project from GitHub.
+3. Add environment variables from `.env`.
+4. Start with `DRY_RUN=true`.
+5. Watch the logs and confirm the model output looks right.
+6. Flip `DRY_RUN=false` only after you have validated the source mappings.
+7. Keep `DISABLE_NEW_ENTRIES=true` handy as an emergency kill switch that still allows exits.
 
 ## Risk parameters to tune
 
 | Param | Default | Effect |
 |---|---|---|
-| `MIN_EDGE_SCORE` | 1.0 | Raise to be more selective |
-| `MIN_VOLUME` | 500 | Raise to avoid thinner markets |
-| `take_profit` | per entry | How much gain before exit |
-| `stop_loss` | per entry | How much loss before exit |
+| `MIN_EDGE_CENTS` | 3 | Minimum modeled edge after spread penalty |
+| `MIN_VOLUME` | 500 | Avoid thinner markets |
+| `MAX_SOURCE_DISAGREEMENT_CENTS` | 20 | Skip markets where sources conflict too much |
+| `MAX_ACTIVE_POSITIONS` | 3 | Cap simultaneous exposure |
+| `AUTO_NBA_PREGAME` | false | Enable automatic pregame NBA scanning |
+| `NBA_LOOKAHEAD_HOURS` | 24 | Only consider markets closing within this many hours |
+| `MAX_AUTO_CANDIDATES` | 5 | How many NBA candidates to keep per scan |
+| `AUTO_CONTRACTS` | 2 | Default size per automatically selected trade |
+| `AUTO_MAX_PRICE_CENTS` | 70 | Avoid paying too much for auto-selected contracts |
+| `MIN_AUTO_MATCH_CONFIDENCE` | 0.6 | Minimum confidence for matching a Kalshi market to an NBA game |
+| `ENABLE_NBA_INJURY_WATCHER` | true | Poll and diff the official NBA injury report |
+| `ENABLE_NHL_INJURY_WATCHER` | true | Poll and diff the latest NHL status report |
+| `MAX_CONTRACTS_PER_POSITION` | 10 | Hard cap on contracts per trade |
+| `MAX_POSITION_COST_CENTS` | 2000 | Hard cap on cost of a single new position |
+| `MAX_TOTAL_EXPOSURE_CENTS` | 5000 | Hard cap on open position cost across the bot |
+| `MAX_DAILY_TRADES` | 10 | Stops opening more trades after daily turnover gets too high |
+| `MAX_DAILY_REALIZED_LOSS_CENTS` | 1500 | Stops new entries after the bot loses this much in one UTC day |
+| `COOLDOWN_MINUTES` | 60 | Prevent immediate re-entry after an exit |
+| `FAIR_EXIT_BUFFER_CENTS` | 1 | Sell near modeled fair value before full convergence |
+| `DISABLE_NEW_ENTRIES` | false | Emergency switch for unattended mode |
+| `take_profit` | per entry | Exit at a fixed gain |
+| `stop_loss` | per entry | Exit at a fixed loss |
 
-## FAQ
+## Notes
 
-**Bot crashes?** Railway auto-restarts. Bot has built-in reconnect loop.  
-**Laptop off?** Irrelevant — runs on Railway servers 24/7.  
-**Add markets?** Add to WATCHLIST, commit, Railway redeploys.  
-**Stop the bot?** Railway → Settings → Remove service.
+- `bot_state.json` stores open-position state between restarts.
+- `injury_watcher_state.json` stores the last NBA and NHL watcher snapshots.
+- Daily trade count and realized PnL are also stored in `bot_state.json`, so safety limits survive restarts.
+- Polymarket is queried through the public Gamma API.
+- Vegas odds are pulled through The Odds API and de-vigged at the bookmaker level before averaging.
+- If no external source can be fetched for a market, the bot skips the trade.
+- The bot is intentionally built to keep managing existing positions even when new entries are disabled by a risk cap or kill switch.
+- The NBA auto scanner is intentionally constrained to pregame NBA-style mappings because that is safer than letting the bot choose from every market category.
+- Kalshi sports discovery now prefers sports series and event metadata rather than sweeping generic open markets.

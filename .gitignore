@@ -2,3 +2,5 @@
 *.pem
 __pycache__/
 *.pyc
+bot_state.json
+injury_watcher_state.json
