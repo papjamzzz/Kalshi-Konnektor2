@@ -1,0 +1,515 @@
+/Users/miahsm1/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+2026-04-01 20:54:47  INFO      ============================================================
+2026-04-01 20:54:47  INFO      Kalshi Konnektor starting - DRY_RUN=False
+2026-04-01 20:54:47  INFO      Monitoring 2 markets, polling every 60s
+2026-04-01 20:54:47  INFO      Min edge: 3.00c  |  Min volume: 500  |  Max open positions: 3
+2026-04-01 20:54:47  INFO      Auto mode: nhl_pregame=True  nba_pregame=False  mlb_pregame=True  lookahead=24h  auto_candidates=3  auto_contracts=1
+2026-04-01 20:54:47  INFO      Risk caps: max position=2000c  max exposure=1500c  max daily loss=500c  new entries disabled=False
+2026-04-01 20:54:47  INFO      ============================================================
+2026-04-01 20:54:47  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 20:54:47  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 20:54:48  INFO        Loaded 14 live odds events for icehockey_nhl from Pinnacle.
+2026-04-01 20:54:49  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 20:54:49  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 20:54:52  INFO        NHL liquidity snapshot: matched_events=9 total_markets=18 filtered_period_markets=2 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 20:54:52  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 20:54:52  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 20:54:52  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:54:52  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:54:52  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 20:54:53  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:54:53  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:54:53  INFO        MLB starter contexts loaded: 15
+2026-04-01 20:54:54  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 20:54:55  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 20:54:57  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 20:54:57  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 20:54:57  INFO      Active candidate set: 2 entries
+2026-04-01 20:54:57  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 20:54:57  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:55:02 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': '-9ktySZ4UadvZLyg3KGx8E-_5-b-MuSWlqSldvmmz0obwpL33P0dew=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:54:57  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 20:54:57  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:55:02 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'Nr3ZOe8sBW6kgAHLGvVoiBI7EvrQ4TlJS2LUmCGQxZ8kAEoTKxgiyw=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:54:57  INFO      Sleeping 60s...
+
+2026-04-01 20:55:57  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 20:55:57  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 20:55:58  INFO        Loaded 14 live odds events for icehockey_nhl from Pinnacle.
+2026-04-01 20:55:59  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 20:55:59  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 20:56:02  INFO        NHL liquidity snapshot: matched_events=9 total_markets=18 filtered_period_markets=2 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 20:56:02  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 20:56:02  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 20:56:02  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:56:02  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:56:02  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 20:56:03  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:56:03  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:56:03  INFO        MLB starter contexts loaded: 15
+2026-04-01 20:56:04  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 20:56:04  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 20:56:07  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 20:56:07  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 20:56:07  INFO      Active candidate set: 2 entries
+2026-04-01 20:56:07  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 20:56:07  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:56:11 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'x-fi-Cqoa31mxGlednDiyX6cZJ_ad-NBWL-DbuTLXqYTSH4T_PHACw=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:56:07  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 20:56:07  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:56:12 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': '7w0jcFooBYNcCw_bTx04cUC8GHjopALb_q57KNT-uAMXsFlHr_lN-Q=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:56:07  INFO      Sleeping 60s...
+
+2026-04-01 20:57:07  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 20:57:07  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 20:57:07  INFO        Loaded 15 live odds events for icehockey_nhl from Pinnacle.
+2026-04-01 20:57:09  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 20:57:09  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 20:57:12  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 20:57:12  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 20:57:12  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 20:57:12  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:57:12  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:57:12  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 20:57:13  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:57:13  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:57:13  INFO        MLB starter contexts loaded: 15
+2026-04-01 20:57:14  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 20:57:14  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 20:57:17  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 20:57:17  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 20:57:17  INFO      Active candidate set: 2 entries
+2026-04-01 20:57:17  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 20:57:17  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:57:22 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'HZNBOq-cecAz0cCt234way1VrTy3p_N-BYbTai8LeSMWgMme8vv3ng=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:57:17  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 20:57:17  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:57:22 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'YQq39Hg0m7w19S-iHMVjr4rnipgnSdUYlsRvgKOfSisj-mkJyTOdDQ=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:57:17  INFO      Sleeping 60s...
+
+2026-04-01 20:58:17  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 20:58:17  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 20:58:17  INFO        Loaded 15 live odds events for icehockey_nhl from Pinnacle.
+2026-04-01 20:58:20  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 20:58:20  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 20:58:23  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 20:58:23  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 20:58:23  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 20:58:23  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:58:24  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:58:24  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 20:58:24  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:58:24  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:58:24  INFO        MLB starter contexts loaded: 15
+2026-04-01 20:58:27  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 20:58:27  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 20:58:30  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 20:58:30  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 20:58:30  INFO      Active candidate set: 2 entries
+2026-04-01 20:58:30  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 20:58:30  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:58:34 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'd5ZdNR4pHYmrmstVME8pq0U_wBAl1L_pC6WqoPhNUl6LMA2RnCarLg=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:58:30  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 20:58:30  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:58:34 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'zQ2RJOcz4IpvtpIP30W1G3DEiQ1CmAwb-zVDl8PvmoGoptt7wpbWXw=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:58:30  INFO      Sleeping 60s...
+
+2026-04-01 20:59:30  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 20:59:30  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 20:59:30  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 20:59:30  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 20:59:32  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 20:59:32  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 20:59:35  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 20:59:35  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 20:59:35  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 20:59:35  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:59:36  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:59:36  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 20:59:37  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 20:59:37  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 20:59:37  INFO        MLB starter contexts loaded: 15
+2026-04-01 20:59:39  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 20:59:39  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 20:59:41  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 20:59:41  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 20:59:41  INFO      Active candidate set: 2 entries
+2026-04-01 20:59:41  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 20:59:41  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:59:46 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'n30pu4HfMPXJy7B63tErdnKV2y6rMDfYf2nJM3zyGKVCz-3qqS6kog=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:59:41  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 20:59:42  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 00:59:46 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'JqS0oR6gcNjTDvlumWFQng1kAocxS57dCbCQep-LxDecycsuiMZn_g=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 20:59:42  INFO      Sleeping 60s...
+
+2026-04-01 21:00:42  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:00:42  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:00:42  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:00:44  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:00:46  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:00:46  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 21:00:49  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:00:49  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:00:49  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:00:49  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:00:50  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:00:50  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:00:50  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:00:50  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:00:50  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:00:52  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:00:52  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:00:55  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:00:55  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:00:55  INFO      Active candidate set: 2 entries
+2026-04-01 21:00:55  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:00:55  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:01:00 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'goJHKhSJEFuOhpp96pO9yZnj8VzQakE5f3EVEvKCdvDWNbOBKIdLRw=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:00:55  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:00:55  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:01:00 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'TL2PUKe-vQLasAGVVNLbST04BYv1AEPymey85CIhRzAYtcI0AsbkUA=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:00:55  INFO      Sleeping 60s...
+
+2026-04-01 21:01:55  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:01:55  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:01:55  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:01:56  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:01:57  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:01:57  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 21:02:01  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:02:01  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:02:01  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:02:01  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:02:01  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:02:02  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:02:02  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:02:02  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:02:02  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:02:04  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:02:04  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:02:07  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:02:07  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:02:07  INFO      Active candidate set: 2 entries
+2026-04-01 21:02:07  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:02:07  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:02:12 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': '8d20r2fJOOvclGB27Oeb2Yb5sbUjZSOcYjuiJeGej7lXAEEiYGQHwA=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:02:07  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:02:07  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:02:12 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'i4_l5yz_vGVuAUaUyvvZS_eLzQKKC66aPRsxFHMCLTeDpnj4gbSFww=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:02:07  INFO      Sleeping 60s...
+
+2026-04-01 21:03:07  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:03:07  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:03:08  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:03:09  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:03:13  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:03:13  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 21:03:16  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:03:16  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:03:16  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:03:16  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:03:16  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:03:17  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:03:17  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:03:17  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:03:17  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:03:19  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:03:19  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:03:21  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:03:21  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:03:21  INFO      Active candidate set: 2 entries
+2026-04-01 21:03:21  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:03:22  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:03:26 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'Ey7_H1xXL35pXDdK4TKbWjRdVR9HpV42I8vSjIK5JGjAkeyqskkgzA=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:03:22  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:03:22  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:03:26 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'm-1JDsvvni4YZNIJtD1F3pm--QX-mM6BrIQV4nvIEpw7ddviAL3rLQ=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:03:22  INFO      Sleeping 60s...
+
+2026-04-01 21:04:22  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:04:22  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:04:22  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:04:22  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:04:24  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:04:24  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 21:04:26  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:04:26  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:04:26  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:04:26  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:04:27  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:04:27  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:04:27  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:04:27  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:04:27  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:04:28  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:04:29  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:04:31  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:04:31  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:04:31  INFO      Active candidate set: 2 entries
+2026-04-01 21:04:31  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:04:31  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:04:36 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'jDH6J5BCe4ty0AZDc6MsetYbKANKzr14rCeaYtKph85dMS3xNKy7aw=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:04:31  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:04:31  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:04:36 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'y53QsCyXskUSI5bEyx99hNrTwZzRrAG-Mcou-cHO5W9rNbSYnBdGsg=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:04:31  INFO      Sleeping 60s...
+
+2026-04-01 21:05:31  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:05:31  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:05:31  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:05:32  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:05:33  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:05:33  INFO        Auto-scan pulled 24 Kalshi events for NHL.
+2026-04-01 21:05:36  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:05:36  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:05:36  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:05:36  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:05:37  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:05:37  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:05:37  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:05:37  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:05:37  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:05:39  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:05:39  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:05:42  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:05:42  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:05:42  INFO      Active candidate set: 2 entries
+2026-04-01 21:05:42  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:05:42  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:05:46 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'ndNWnvG1WMB-ePM1DlMmKGkPVSPV6y0_LUhJ5csjq9SCQ5C78kyCJQ=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:05:42  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:05:42  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:05:46 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': '3-BnrlY4M_-O-sD8pe_vMYtIjahwnl-GGmHkYb-G4AppqujtkXSBsA=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:05:42  INFO      Sleeping 60s...
+
+2026-04-01 21:06:42  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:06:42  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:06:42  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:06:42  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:06:44  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:06:44  INFO        Auto-scan pulled 30 Kalshi events for NHL.
+2026-04-01 21:06:46  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:06:46  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:06:46  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:06:47  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:06:47  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:06:47  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:06:47  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:06:47  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:06:47  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:06:49  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:06:49  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:06:51  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:06:51  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:06:51  INFO      Active candidate set: 2 entries
+2026-04-01 21:06:51  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:06:51  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:06:56 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'Cf4fyFqJ5kx_YaTzcQCp_gIpnzy58zlSAZZzqL4m-ikWC7fQGYJYcA=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:06:51  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:06:51  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:06:56 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'R9bHJN7-NVf_pnB1D4CHCPQniOuIrjhnkO9cXfRJW-S37jcq1r8nRQ=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:06:51  INFO      Sleeping 60s...
+
+2026-04-01 21:07:51  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:07:51  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:07:52  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:07:52  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:07:53  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:07:54  INFO        Auto-scan pulled 30 Kalshi events for NHL.
+2026-04-01 21:07:56  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:07:56  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:07:56  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:07:56  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:07:57  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:07:57  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:07:57  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:07:57  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:07:57  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:07:58  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:07:59  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:08:01  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:08:01  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:08:01  INFO      Active candidate set: 2 entries
+2026-04-01 21:08:01  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:08:01  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:08:05 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'XrohVsQVlxRjK-yJECx_nhEUonF09uAj1OhMkf5zawGFRt2VU6c1AA=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:08:01  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:08:01  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:08:06 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'CBh6i0LfNfaHHYMkUCXge4yiINM--nsJAEHMp5B6RdnQcUe4U9Sk7Q=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:08:01  INFO      Sleeping 60s...
+
+2026-04-01 21:09:01  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:09:01  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:09:01  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:09:02  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:09:03  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:09:03  INFO        Auto-scan pulled 30 Kalshi events for NHL.
+2026-04-01 21:09:06  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:09:06  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:09:06  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:09:06  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:09:06  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:09:07  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:09:07  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:09:07  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:09:07  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:09:08  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:09:09  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:09:11  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:09:11  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:09:11  INFO      Active candidate set: 2 entries
+2026-04-01 21:09:11  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:09:11  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:09:16 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'ydUIg4Q2sUPXoezLoB8bEvkeCUEGAf5zeqOwNfYH2bgg8uZIU5fR4w=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:09:11  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:09:11  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:09:16 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'FMRKAv2BzVNdQILBXR4vyvuKiVXXr_yzBPLnt6b3YAwrTyX-URnZZA=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:09:11  INFO      Sleeping 60s...
+
+2026-04-01 21:10:11  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:10:12  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:10:12  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:10:12  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:10:13  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:10:14  INFO        Auto-scan pulled 30 Kalshi events for NHL.
+2026-04-01 21:10:16  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:10:16  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:10:16  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:10:18  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:10:18  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:10:19  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:10:19  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:10:19  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:10:19  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:10:20  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:10:20  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:10:23  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:10:23  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:10:23  INFO      Active candidate set: 2 entries
+2026-04-01 21:10:23  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:10:23  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:10:27 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'pcp5f7xqBb_ry3j56U1d8QQHmjYyyuBO01frul2QhxSNhJL_RwSw0A=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:10:23  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:10:23  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:10:28 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'FtmQu5GCGoh7Q-z00EYOmS5sIn1drbjA_EZIZrPqNGHv-KYvxItS4A=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:10:23  INFO      Sleeping 60s...
+
+2026-04-01 21:11:23  INFO      Daily snapshot: trades=0/4  realized_pnl=0c  open_exposure=0c/1500c
+2026-04-01 21:11:23  INFO        Using cached odds snapshot for icehockey_nhl (1m old).
+2026-04-01 21:11:23  WARNING     Could not fetch icehockey_nhl odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/1456/matchups?withSpecials=false
+2026-04-01 21:11:23  INFO        Loaded 17 live odds events for icehockey_nhl from The Odds API.
+2026-04-01 21:11:25  INFO        Kalshi NHL series search set: KXNHLGAME
+2026-04-01 21:11:25  INFO        Auto-scan pulled 30 Kalshi events for NHL.
+2026-04-01 21:11:27  INFO        NHL liquidity snapshot: matched_events=10 total_markets=20 filtered_period_markets=2 off_window_markets=18 quoted_markets=0 candidates=0
+2026-04-01 21:11:27  INFO        NHL matched the sportsbook slate, but the visible Kalshi contracts were mostly side/partial-game markets.
+2026-04-01 21:11:27  INFO        Using cached odds snapshot for baseball_mlb (1m old).
+2026-04-01 21:11:28  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:11:28  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:11:28  INFO        Using cached odds snapshot for baseball_mlb (0m old).
+2026-04-01 21:11:28  WARNING     Could not fetch baseball_mlb odds from Pinnacle: 403 Client Error: Forbidden for url: https://guest.api.arcadia.pinnacle.com/0.1/leagues/246/matchups?withSpecials=false
+2026-04-01 21:11:29  INFO        Loaded 5 live odds events for baseball_mlb from The Odds API.
+2026-04-01 21:11:29  INFO        MLB starter contexts loaded: 15
+2026-04-01 21:11:30  INFO        Kalshi MLB series search set: KXMLBGAME
+2026-04-01 21:11:30  INFO        Auto-scan pulled 33 Kalshi events for MLB.
+2026-04-01 21:11:32  INFO        MLB liquidity snapshot: matched_events=8 total_markets=16 filtered_period_markets=0 off_window_markets=16 quoted_markets=0 candidates=0
+2026-04-01 21:11:32  INFO        MLB matched the sportsbook slate, but the visible full-game markets were outside the configured close window.
+2026-04-01 21:11:32  INFO      Active candidate set: 2 entries
+2026-04-01 21:11:32  INFO      Checking KXBTCD-25DEC31-T50000 (YES)...
+2026-04-01 21:11:32  WARNING   Could not fetch market KXBTCD-25DEC31-T50000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:11:37 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': 'PsVTxJh8l0gV2kxdXSYEZgx_7a--eJu1e5gEuPNgU5T4fYqkDjqfYg=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:11:32  INFO      Checking KXETHUSD-25DEC31-T2000 (NO)...
+2026-04-01 21:11:32  WARNING   Could not fetch market KXETHUSD-25DEC31-T2000: (404)
+Reason: Not Found
+HTTP response headers: HTTPHeaderDict({'Content-Type': 'application/json; charset=utf-8', 'Content-Length': '79', 'Connection': 'keep-alive', 'Date': 'Thu, 02 Apr 2026 01:11:37 GMT', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none';", 'strict-transport-security': 'max-age=31536000; includeSubDomains', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9f16eff03adb15002eac3391a791c474.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'BOS50-P5', 'X-Amz-Cf-Id': '0wxcsX-xtSUPy2t2TtNtBabcXcpJM8uPCb7bZ7w6pl3tCNJPDjgD1A=='})
+HTTP response body: error=ErrorResponseError(code='not_found', message='not found', details=None)
+
+2026-04-01 21:11:32  INFO      Sleeping 60s...
+

@@ -91,6 +91,13 @@ DEFAULT_MANUAL_WEIGHT = float(os.environ.get("DEFAULT_MANUAL_WEIGHT", "0.10"))
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY")
 ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports"
 POLYMARKET_BASE_URL = "https://gamma-api.polymarket.com"
+PINNACLE_BASE_URL = "https://guest.api.arcadia.pinnacle.com/0.1"
+PINNACLE_GUEST_KEY = "CmX2KcMrXuFmNg6YFbmTxE0y9CQnkinu"
+PINNACLE_LEAGUE_IDS: dict[str, int] = {
+    "baseball_mlb": 246,
+    "icehockey_nhl": 1456,
+    "basketball_nba": 487,
+}
 ODDS_CACHE_FILE = Path(os.environ.get("ODDS_CACHE_FILE", "odds_cache.json"))
 ODDS_CACHE_MAX_AGE_MINUTES = int(os.environ.get("ODDS_CACHE_MAX_AGE_MINUTES", "720"))
 ODDS_CACHE_WRITE_ON_SUCCESS = os.environ.get("ODDS_CACHE_WRITE_ON_SUCCESS", "true").lower() == "true"
@@ -1230,8 +1237,8 @@ def place_order(client, ticker: str, action: str, side: str, price: int, count: 
 
 
 # -- HTTP helpers --------------------------------------------------------------
-def get_json(url: str, params: Optional[dict[str, Any]] = None) -> Any:
-    response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+def get_json(url: str, params: Optional[dict[str, Any]] = None, headers: Optional[dict[str, str]] = None) -> Any:
+    response = requests.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
     response.raise_for_status()
     return response.json()
 
@@ -1747,8 +1754,85 @@ def fetch_espn_mlb_probable_games() -> list[MLBProbableGame]:
     return results
 
 
+def fetch_pinnacle_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
+    league_id = PINNACLE_LEAGUE_IDS.get(sport_key)
+    if not league_id:
+        return []
+
+    headers = {"User-Agent": "Mozilla/5.0", "X-Api-Key": PINNACLE_GUEST_KEY}
+
+    matchups_raw = get_json(
+        f"{PINNACLE_BASE_URL}/leagues/{league_id}/matchups",
+        params={"withSpecials": "false"},
+        headers=headers,
+    )
+    matchup_map: dict[int, dict] = {}
+    for m in matchups_raw:
+        mid = m.get("id")
+        participants = m.get("participants", [])
+        home = next((p for p in participants if p.get("alignment") == "home"), None)
+        away = next((p for p in participants if p.get("alignment") == "away"), None)
+        if not mid or not home or not away:
+            continue
+        commence_ts = to_unix_timestamp(m.get("startTime"))
+        if commence_ts is None:
+            continue
+        matchup_map[mid] = {
+            "home_team": str(home.get("name", "")).strip(),
+            "away_team": str(away.get("name", "")).strip(),
+            "commence_ts": commence_ts,
+        }
+
+    markets_raw = get_json(
+        f"{PINNACLE_BASE_URL}/leagues/{league_id}/markets/straight",
+        headers=headers,
+    )
+
+    results: list[OddsEvent] = []
+    for market in markets_raw:
+        if not str(market.get("key", "")).startswith("s;0;m"):
+            continue
+        mid = market.get("matchupId")
+        game = matchup_map.get(mid)
+        if not game:
+            continue
+        prices = market.get("prices", [])
+        home_price = next((p.get("price") for p in prices if p.get("designation") == "home"), None)
+        away_price = next((p.get("price") for p in prices if p.get("designation") == "away"), None)
+        home_prob = implied_probability_from_american(home_price)
+        away_prob = implied_probability_from_american(away_price)
+        if home_prob is None or away_prob is None:
+            continue
+        total = home_prob + away_prob
+        if total <= 0:
+            continue
+        results.append(OddsEvent(
+            event_id=str(mid),
+            commence_ts=game["commence_ts"],
+            home_team=game["home_team"],
+            away_team=game["away_team"],
+            home_probability=clamp_probability(home_prob / total),
+            away_probability=clamp_probability(away_prob / total),
+            sport_key=sport_key,
+        ))
+
+    return results
+
+
 def fetch_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
     cached = load_cached_odds_events(sport_key)
+
+    try:
+        pinnacle_events = fetch_pinnacle_moneyline_events_for_sport(sport_key)
+        if pinnacle_events:
+            if ODDS_CACHE_WRITE_ON_SUCCESS:
+                save_cached_odds_events(sport_key, pinnacle_events)
+            log.info(f"  Loaded {len(pinnacle_events)} live odds events for {sport_key} from Pinnacle.")
+            return pinnacle_events
+        log.warning(f"  Pinnacle returned no usable moneyline events for {sport_key}.")
+    except Exception as exc:
+        log.warning(f"  Could not fetch {sport_key} odds from Pinnacle: {exc}")
+
     if not ODDS_API_KEY:
         log.warning(f"  Auto-scan for {sport_key} is enabled but ODDS_API_KEY is missing.")
     else:
@@ -2555,13 +2639,14 @@ def run() -> None:
         state = load_state()
         log_daily_risk_snapshot(state)
         poll_injury_watchers()
+        entries = []
         if AUTO_NHL_PREGAME:
-            entries = build_auto_nhl_watchlist(client)
-        elif AUTO_NBA_PREGAME:
-            entries = build_auto_nba_watchlist(client)
-        elif AUTO_MLB_PREGAME:
-            entries = build_auto_mlb_watchlist(client)
-        else:
+            entries += build_auto_nhl_watchlist(client)
+        if AUTO_NBA_PREGAME:
+            entries += build_auto_nba_watchlist(client)
+        if AUTO_MLB_PREGAME:
+            entries += build_auto_mlb_watchlist(client)
+        if not entries:
             entries = WATCHLIST
         log.info(f"Active candidate set: {len(entries)} entries")
 
