@@ -37,6 +37,7 @@ import requests
 from dotenv import load_dotenv
 
 from injury_watchers import MLBProbableStarterWatcher, NBAInjuryWatcher, NHLStatusWatcher
+from odds_keys import get_odds_client
 
 load_dotenv()
 
@@ -1396,27 +1397,20 @@ def fetch_polymarket_signal(source: PolymarketSource) -> Optional[SourceSignal]:
 
 
 def find_odds_event(source: VegasOddsSource) -> Optional[dict[str, Any]]:
+    client = get_odds_client()
     if source.event_id:
-        return get_json(
-            f"{ODDS_API_BASE_URL}/{source.sport}/events/{source.event_id}/odds",
-            params={
-                "apiKey": ODDS_API_KEY,
-                "regions": source.regions,
-                "markets": source.market,
-                "oddsFormat": "american",
-                **({"bookmakers": source.bookmakers} if source.bookmakers else {}),
-            },
+        return client.get_event_odds(
+            source.sport, source.event_id,
+            regions=source.regions, markets=source.market,
+            odds_format="american",
+            bookmakers=source.bookmakers,
         )
 
-    events = get_json(
-        f"{ODDS_API_BASE_URL}/{source.sport}/odds",
-        params={
-            "apiKey": ODDS_API_KEY,
-            "regions": source.regions,
-            "markets": source.market,
-            "oddsFormat": "american",
-            **({"bookmakers": source.bookmakers} if source.bookmakers else {}),
-        },
+    events = client.get_all_events(
+        source.sport,
+        regions=source.regions, markets=source.market,
+        odds_format="american",
+        bookmakers=source.bookmakers,
     )
 
     if not source.home_team or not source.away_team:
@@ -1432,8 +1426,8 @@ def find_odds_event(source: VegasOddsSource) -> Optional[dict[str, Any]]:
 
 
 def fetch_vegas_signal(source: VegasOddsSource) -> Optional[SourceSignal]:
-    if not ODDS_API_KEY:
-        log.warning("  Vegas odds source configured but ODDS_API_KEY is missing.")
+    if not get_odds_client().has_keys:
+        log.warning("  Vegas odds source configured but no Odds API keys are set.")
         return None
 
     try:
@@ -1833,19 +1827,13 @@ def fetch_moneyline_events_for_sport(sport_key: str) -> list[OddsEvent]:
     except Exception as exc:
         log.warning(f"  Could not fetch {sport_key} odds from Pinnacle: {exc}")
 
-    if not ODDS_API_KEY:
-        log.warning(f"  Auto-scan for {sport_key} is enabled but ODDS_API_KEY is missing.")
+    odds_client = get_odds_client()
+    if not odds_client.has_keys:
+        log.warning(f"  Auto-scan for {sport_key} is enabled but no Odds API keys are configured.")
     else:
         try:
-            raw_events = get_json(
-                f"{ODDS_API_BASE_URL}/{sport_key}/odds",
-                params={
-                    "apiKey": ODDS_API_KEY,
-                    "regions": "us",
-                    "markets": "h2h",
-                    "oddsFormat": "american",
-                },
-            )
+            raw_events = odds_client.get_odds(sport_key, regions="us",
+                                              markets="h2h", odds_format="american")
             events = normalize_moneyline_events(raw_events, sport_key)
             if events:
                 if ODDS_CACHE_WRITE_ON_SUCCESS:
