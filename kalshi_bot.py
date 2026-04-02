@@ -38,6 +38,7 @@ from dotenv import load_dotenv
 
 from injury_watchers import MLBProbableStarterWatcher, NBAInjuryWatcher, NHLStatusWatcher
 from odds_keys import get_odds_client
+from free_odds import FreeOddsSource, fetch_free_signals
 
 load_dotenv()
 
@@ -85,9 +86,17 @@ AUTO_MAX_PRICE_CENTS = int(os.environ.get("AUTO_MAX_PRICE_CENTS", "70"))
 AUTO_MIN_TIME_TO_CLOSE_MINUTES = int(os.environ.get("AUTO_MIN_TIME_TO_CLOSE_MINUTES", "20"))
 MIN_AUTO_MATCH_CONFIDENCE = float(os.environ.get("MIN_AUTO_MATCH_CONFIDENCE", "0.6"))
 
-DEFAULT_POLYMARKET_WEIGHT = float(os.environ.get("DEFAULT_POLYMARKET_WEIGHT", "0.55"))
-DEFAULT_VEGAS_WEIGHT = float(os.environ.get("DEFAULT_VEGAS_WEIGHT", "0.35"))
+DEFAULT_POLYMARKET_WEIGHT = float(os.environ.get("DEFAULT_POLYMARKET_WEIGHT", "0.30"))
+DEFAULT_VEGAS_WEIGHT = float(os.environ.get("DEFAULT_VEGAS_WEIGHT", "0.15"))
 DEFAULT_MANUAL_WEIGHT = float(os.environ.get("DEFAULT_MANUAL_WEIGHT", "0.10"))
+
+# Free parallel odds sources (Pinnacle guest key + Action Network + DraftKings public)
+DEFAULT_FREE_PINNACLE_WEIGHT       = float(os.environ.get("DEFAULT_FREE_PINNACLE_WEIGHT",       "0.40"))
+DEFAULT_FREE_ACTION_NETWORK_WEIGHT = float(os.environ.get("DEFAULT_FREE_ACTION_NETWORK_WEIGHT", "0.25"))
+DEFAULT_FREE_DRAFTKINGS_WEIGHT     = float(os.environ.get("DEFAULT_FREE_DRAFTKINGS_WEIGHT",     "0.15"))
+ENABLE_FREE_ODDS_PINNACLE          = os.environ.get("ENABLE_FREE_ODDS_PINNACLE",       "true").lower() == "true"
+ENABLE_FREE_ODDS_ACTION_NETWORK    = os.environ.get("ENABLE_FREE_ODDS_ACTION_NETWORK", "true").lower() == "true"
+ENABLE_FREE_ODDS_DRAFTKINGS        = os.environ.get("ENABLE_FREE_ODDS_DRAFTKINGS",     "true").lower() == "true"
 
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY")
 ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports"
@@ -183,6 +192,7 @@ class WatchEntry:
     polymarket: Optional[PolymarketSource] = None
     vegas: Optional[VegasOddsSource] = None
     manual: Optional[ManualSource] = None
+    free_odds: Optional[FreeOddsSource] = None
     notes: str = ""
     league: str = "custom"
 
@@ -2212,6 +2222,7 @@ def build_watch_entry_from_market(
     league: str,
     score_bonus: float = 0.0,
     notes_suffix: str = "",
+    selected_team: str = "",
 ) -> Optional[tuple[float, WatchEntry]]:
     ask = getattr(market, f"{side}_ask", None)
     if ask is None or ask > AUTO_MAX_PRICE_CENTS:
@@ -2222,6 +2233,24 @@ def build_watch_entry_from_market(
     ticker = str(getattr(market, "ticker", "") or "").strip()
     if not ticker:
         return None
+
+    # Determine which side of the matchup we're betting on
+    outcome = "home"
+    if selected_team and canonical_team_name(selected_team) != canonical_team_name(event.home_team):
+        outcome = "away"
+
+    free_odds_source = FreeOddsSource(
+        sport_key=event.sport_key,
+        home_team=event.home_team,
+        away_team=event.away_team,
+        outcome=outcome,
+        use_pinnacle=ENABLE_FREE_ODDS_PINNACLE,
+        use_action_network=ENABLE_FREE_ODDS_ACTION_NETWORK,
+        use_draftkings=ENABLE_FREE_ODDS_DRAFTKINGS,
+        pinnacle_weight=DEFAULT_FREE_PINNACLE_WEIGHT,
+        action_network_weight=DEFAULT_FREE_ACTION_NETWORK_WEIGHT,
+        draftkings_weight=DEFAULT_FREE_DRAFTKINGS_WEIGHT,
+    )
 
     return (
         edge_guess + score_bonus,
@@ -2235,9 +2264,10 @@ def build_watch_entry_from_market(
             min_edge_cents=MIN_EDGE_CENTS,
             manual=ManualSource(
                 probability=probability,
-                weight=1.0,
-                label=f"{league.lower()}-consensus:{event.away_team} at {event.home_team}",
+                weight=DEFAULT_MANUAL_WEIGHT,
+                label=f"{league.lower()}-bootstrap:{event.away_team} at {event.home_team}",
             ),
+            free_odds=free_odds_source,
             notes=(
                 f"auto-{league.lower()} event={event.event_id} confidence={confidence:.2f}"
                 f"{notes_suffix}"
@@ -2360,6 +2390,7 @@ def build_auto_league_watchlist(client, league: str, odds_events: list[OddsEvent
                 league=league,
                 score_bonus=score_bonus,
                 notes_suffix=notes_suffix,
+                selected_team=selected_team,
             )
             if built:
                 stats.candidate_markets += 1
@@ -2435,6 +2466,20 @@ def aggregate_fair_probability(entry: WatchEntry) -> tuple[Optional[float], list
         signal = fetch_manual_signal(entry.manual)
         if signal:
             signals.append(signal)
+
+    if entry.free_odds:
+        try:
+            free_sigs = fetch_free_signals(entry.free_odds)
+            for fs in free_sigs:
+                signals.append(SourceSignal(
+                    name=f"free_{fs.source}",
+                    probability=fs.probability,
+                    weight=fs.weight,
+                    detail=fs.detail,
+                ))
+                log.info("  [free_odds] %s → p=%.3f  %s", fs.source, fs.probability, fs.detail)
+        except Exception as exc:
+            log.warning("  [free_odds] fetch failed: %s", exc)
 
     if not signals:
         return None, []
